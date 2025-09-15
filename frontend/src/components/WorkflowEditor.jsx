@@ -219,6 +219,103 @@ function WorkflowEditor({ onWorkflowCreated }) {
     onWorkflowCreated(workflow);
   }, [workflowName, nodes, edges, onWorkflowCreated]);
 
+  const exportWorkflowAsJSON = useCallback(() => {
+    if (!workflowName.trim()) {
+      alert('Please enter a workflow name');
+      return;
+    }
+
+    const workflow = {
+      workflowId: workflowName.toLowerCase().replace(/\s+/g, '-'),
+      name: workflowName,
+      branches: nodes.map((node) => ({
+        id: node.id,
+        name: node.data.branchName,
+        type: node.data.branchType,
+        isRemote: node.data.isRemote,
+        protection: node.data.protection,
+        position: node.position,
+      })),
+      operations: edges.map((edge) => ({
+        id: edge.id,
+        type: edge.data.operationType,
+        source: edge.source,
+        target: edge.target,
+        params: edge.data.params || {},
+      })),
+    };
+
+    // Create and download JSON file
+    const dataStr = JSON.stringify(workflow, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `${workflow.workflowId}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  }, [workflowName, nodes, edges]);
+
+  const importWorkflowFromJSON = useCallback((event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const workflow = JSON.parse(e.target.result);
+        
+        // Validate workflow structure
+        if (!workflow.name || !workflow.branches || !workflow.operations) {
+          alert('Invalid workflow file: Missing required fields (name, branches, operations)');
+          return;
+        }
+
+        // Set workflow name
+        setWorkflowName(workflow.name);
+
+        // Convert branches to nodes
+        const importedNodes = workflow.branches.map((branch) => ({
+          id: branch.id,
+          type: branch.type,
+          position: branch.position || { x: Math.random() * 400, y: Math.random() * 300 },
+          data: {
+            branchName: branch.name,
+            branchType: branch.type,
+            isRemote: branch.isRemote || false,
+            protection: branch.protection || {},
+          },
+        }));
+
+        // Convert operations to edges
+        const importedEdges = workflow.operations.map((operation) => ({
+          id: operation.id,
+          source: operation.source,
+          target: operation.target,
+          type: 'operation',
+          data: {
+            operationType: operation.type,
+            params: operation.params || {},
+          },
+        }));
+
+        setNodes(importedNodes);
+        setEdges(importedEdges);
+        
+        alert(`Successfully imported workflow: ${workflow.name}`);
+      } catch (error) {
+        alert('Error importing workflow: Invalid JSON file');
+        console.error('Import error:', error);
+      }
+    };
+    
+    reader.readAsText(file);
+    
+    // Reset file input
+    event.target.value = '';
+  }, [setNodes, setEdges]);
+
   const onDragStart = (event, itemType) => {
     event.dataTransfer.setData('application/reactflow', itemType);
     event.dataTransfer.effectAllowed = 'move';
@@ -261,12 +358,30 @@ function WorkflowEditor({ onWorkflowCreated }) {
         </div>
 
         <div className="editor-actions">
-          <button onClick={clearWorkflow} className="danger">
-            Clear All
-          </button>
-          <button onClick={exportWorkflow} className="primary">
-            Create Workflow
-          </button>
+          <div className="import-export-section">
+            <input
+              type="file"
+              accept=".json"
+              onChange={importWorkflowFromJSON}
+              style={{ display: 'none' }}
+              id="import-workflow"
+            />
+            <label htmlFor="import-workflow" className="import-button">
+              📁 Import JSON
+            </label>
+            <button onClick={exportWorkflowAsJSON} className="export-button">
+              💾 Export JSON
+            </button>
+          </div>
+          
+          <div className="workflow-actions">
+            <button onClick={clearWorkflow} className="danger">
+              Clear All
+            </button>
+            <button onClick={exportWorkflow} className="primary">
+              Create Workflow
+            </button>
+          </div>
         </div>
 
         <div className="palette-section">
@@ -277,6 +392,9 @@ function WorkflowEditor({ onWorkflowCreated }) {
             <p>2. Drag from one branch to another to connect</p>
             <p>3. Click on connections to change operation type</p>
             <p>4. Click on branches to configure properties</p>
+            <p><strong>Import/Export:</strong></p>
+            <p>• Import JSON: Load existing workflows</p>
+            <p>• Export JSON: Save workflow as file</p>
           </div>
         </div>
       </div>
