@@ -26,7 +26,7 @@ const branchNodeTypes = {
   hotfix: HotfixBranchNode,
 };
 
-// Operation edge types
+// Operation edge types for configuration
 const operationTypes = {
   checkout: { label: 'checkout -b', color: '#007bff' },
   merge: { label: 'merge', color: '#28a745' },
@@ -260,31 +260,6 @@ function WorkflowEditor({ onWorkflowCreated }) {
           </div>
         </div>
 
-        <div className="palette-section">
-          <h4>Git Operations</h4>
-          <div className="operation-palette">
-            {Object.keys(operationTypes).map((operationType) => (
-              <div
-                key={`operation-${operationType}`}
-                className={`palette-item operation-item ${operationType}`}
-                style={{ borderColor: operationTypes[operationType].color }}
-              >
-                <div 
-                  className="operation-icon"
-                  style={{ backgroundColor: operationTypes[operationType].color }}
-                ></div>
-                <span>{operationTypes[operationType].label}</span>
-              </div>
-            ))}
-          </div>
-          <div className="connection-instructions">
-            <p><strong>How to connect branches:</strong></p>
-            <p>1. Drag branches to canvas</p>
-            <p>2. Drag from one branch to another to connect</p>
-            <p>3. Click on connections to change operation type</p>
-          </div>
-        </div>
-
         <div className="editor-actions">
           <button onClick={clearWorkflow} className="danger">
             Clear All
@@ -292,6 +267,17 @@ function WorkflowEditor({ onWorkflowCreated }) {
           <button onClick={exportWorkflow} className="primary">
             Create Workflow
           </button>
+        </div>
+
+        <div className="palette-section">
+          <h4>Instructions</h4>
+          <div className="connection-instructions">
+            <p><strong>How to create workflows:</strong></p>
+            <p>1. Drag branches to canvas</p>
+            <p>2. Drag from one branch to another to connect</p>
+            <p>3. Click on connections to change operation type</p>
+            <p>4. Click on branches to configure properties</p>
+          </div>
         </div>
       </div>
 
