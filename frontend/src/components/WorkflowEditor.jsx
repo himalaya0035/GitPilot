@@ -7,6 +7,11 @@ import ReactFlow, {
   Controls,
   Background,
   MiniMap,
+  Handle,
+  Position,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import BranchConfigModal from './BranchConfigModal';
@@ -47,9 +52,15 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
+  const isValidConnection = useCallback((connection) => {
+    console.log('Validating connection:', connection);
+    return true; // Allow all connections for now
+  }, []);
+
   const onConnect = useCallback(
     (params) => {
-      // Create a new operation edge
+      console.log('Connection attempt:', params);
+      // Create a new operation edge with default merge operation
       const newEdge = {
         ...params,
         id: `edge-${Date.now()}`,
@@ -62,12 +73,14 @@ function WorkflowEditor({ onWorkflowCreated }) {
         labelStyle: { fill: '#28a745', fontWeight: 600 },
         labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
       };
+      console.log('Creating edge:', newEdge);
       setEdges((eds) => addEdge(newEdge, eds));
     },
     [setEdges]
   );
 
   const onNodeClick = useCallback((event, node) => {
+    // Simple branch selection - just open config modal
     setSelectedBranch(node);
     setShowBranchConfig(true);
     setSelectedEdge(null);
@@ -216,6 +229,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
     setDraggedItem(null);
   };
 
+
   return (
     <div className="workflow-editor">
       <div className="editor-controls">
@@ -263,6 +277,12 @@ function WorkflowEditor({ onWorkflowCreated }) {
               </div>
             ))}
           </div>
+          <div className="connection-instructions">
+            <p><strong>How to connect branches:</strong></p>
+            <p>1. Drag branches to canvas</p>
+            <p>2. Drag from one branch to another to connect</p>
+            <p>3. Click on connections to change operation type</p>
+          </div>
         </div>
 
         <div className="editor-actions">
@@ -295,6 +315,14 @@ function WorkflowEditor({ onWorkflowCreated }) {
             }}
             fitView
             connectionLineStyle={{ stroke: '#333', strokeWidth: 2 }}
+            isValidConnection={isValidConnection}
+            defaultEdgeOptions={{
+              type: 'operation',
+              data: { operationType: 'merge', params: {} },
+              label: 'merge',
+              labelStyle: { fill: '#28a745', fontWeight: 600 },
+              labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
+            }}
           >
             <Controls />
             <MiniMap />
@@ -342,12 +370,26 @@ function WorkflowEditor({ onWorkflowCreated }) {
 function ProductionBranchNode({ data, selected }) {
   return (
     <div className={`branch-node production ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
       <div className="branch-header">
         <div className="branch-type-icon">🏭</div>
         <span className="branch-type">PROD</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
     </div>
   );
 }
@@ -355,12 +397,26 @@ function ProductionBranchNode({ data, selected }) {
 function FeatureBranchNode({ data, selected }) {
   return (
     <div className={`branch-node feature ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
       <div className="branch-header">
         <div className="branch-type-icon">🔧</div>
         <span className="branch-type">FEATURE</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
     </div>
   );
 }
@@ -368,12 +424,26 @@ function FeatureBranchNode({ data, selected }) {
 function ReleaseBranchNode({ data, selected }) {
   return (
     <div className={`branch-node release ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
       <div className="branch-header">
         <div className="branch-type-icon">🚀</div>
         <span className="branch-type">RELEASE</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
     </div>
   );
 }
@@ -381,22 +451,63 @@ function ReleaseBranchNode({ data, selected }) {
 function HotfixBranchNode({ data, selected }) {
   return (
     <div className={`branch-node hotfix ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
       <div className="branch-header">
         <div className="branch-type-icon">🚨</div>
         <span className="branch-type">HOTFIX</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
     </div>
   );
 }
 
 // Operation Edge Component
-function OperationEdge({ data, selected }) {
+function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected }) {
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+
   return (
-    <div className={`operation-edge ${selected ? 'selected' : ''}`}>
-      <div className="operation-label">{data.operationType}</div>
-    </div>
+    <>
+      <BaseEdge id={id} path={edgePath} style={{ stroke: '#333', strokeWidth: 2 }} />
+      <EdgeLabelRenderer>
+        <div
+          style={{
+            position: 'absolute',
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            background: 'white',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: 600,
+            border: '1px solid #333',
+            color: '#333',
+          }}
+          className="nodrag nopan"
+        >
+          {data.operationType}
+        </div>
+      </EdgeLabelRenderer>
+    </>
   );
 }
 
