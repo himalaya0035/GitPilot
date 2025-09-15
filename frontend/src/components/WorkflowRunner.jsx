@@ -34,7 +34,7 @@ function WorkflowRunner({ workflow, onBackToEditor }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionLog, setExecutionLog] = useState([]);
-  const [executionStatus, setExecutionStatus] = useState({});
+  // const [executionStatus, setExecutionStatus] = useState({});
 
   useEffect(() => {
     if (workflow) {
@@ -69,9 +69,9 @@ function WorkflowRunner({ workflow, onBackToEditor }) {
 
       setNodes(flowNodes);
       setEdges(flowEdges);
-      setExecutionStatus({});
+      // setExecutionStatus({});
     }
-  }, [workflow]);
+  }, [workflow, setNodes, setEdges]);
 
   const addLogEntry = (message, type = 'info') => {
     const timestamp = new Date().toLocaleTimeString();
@@ -99,7 +99,7 @@ function WorkflowRunner({ workflow, onBackToEditor }) {
     
     setIsExecuting(true);
     setExecutionLog([]);
-    setExecutionStatus({});
+    // setExecutionStatus({});
     addLogEntry(`Starting execution of workflow: ${workflow.name}`, 'info');
 
     // Reset all branches and operations to pending
@@ -126,8 +126,8 @@ function WorkflowRunner({ workflow, onBackToEditor }) {
   };
 
   const simulateWorkflowExecution = async () => {
-    const operationMap = new Map(edges.map(edge => [edge.id, edge]));
-    const branchMap = new Map(nodes.map(node => [node.id, node]));
+    // const operationMap = new Map(edges.map(edge => [edge.id, edge]));
+    // const branchMap = new Map(nodes.map(node => [node.id, node]));
     
     // Build dependency map for operations
     const dependencies = new Map();
@@ -355,18 +355,50 @@ function HotfixBranchNode({ data, selected }) {
 
 // Operation Edge Component with Status
 function OperationEdge({ data, selected }) {
-  const operationType = operationTypes[data.operationType];
+  // Get operation display text and styling based on type and params
+  const getOperationDisplay = (operationType, params = {}) => {
+    switch (operationType) {
+      case 'checkout':
+        if (params.new) {
+          return { text: 'checkout -b', color: '#3b82f6', bgColor: '#eff6ff' };
+        }
+        return { text: 'checkout', color: '#6b7280', bgColor: '#f9fafb' };
+      case 'merge':
+        return { text: 'merge', color: '#10b981', bgColor: '#ecfdf5' };
+      case 'rebase':
+        return { text: 'rebase', color: '#f59e0b', bgColor: '#fffbeb' };
+      case 'push':
+        return { text: 'push', color: '#8b5cf6', bgColor: '#f3e8ff' };
+      case 'pull':
+        return { text: 'pull', color: '#06b6d4', bgColor: '#ecfeff' };
+      case 'delete-branch':
+        return { text: 'delete', color: '#ef4444', bgColor: '#fef2f2' };
+      case 'tag':
+        return { text: 'tag', color: '#f97316', bgColor: '#fff7ed' };
+      default:
+        return { text: operationType, color: '#6b7280', bgColor: '#f9fafb' };
+    }
+  };
+
+  const operationDisplay = getOperationDisplay(data.operationType, data.params);
   
   return (
     <div className={`operation-edge status-${data.status} ${selected ? 'selected' : ''}`}>
       <div 
         className="operation-label"
         style={{ 
-          backgroundColor: operationType?.color || '#333',
-          color: 'white'
+          backgroundColor: operationDisplay.bgColor,
+          color: operationDisplay.color,
+          border: `1px solid ${operationDisplay.color}`,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          borderRadius: '8px',
+          padding: '6px 12px',
+          fontSize: '11px',
+          fontWeight: 600,
+          letterSpacing: '0.3px',
         }}
       >
-        {operationType?.label || data.operationType}
+        {operationDisplay.text}
       </div>
     </div>
   );

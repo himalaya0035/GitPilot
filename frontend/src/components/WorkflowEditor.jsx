@@ -472,25 +472,63 @@ function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
     targetPosition,
   });
 
+  // Get operation display text and styling based on type and params
+  const getOperationDisplay = (operationType, params = {}) => {
+    switch (operationType) {
+      case 'checkout':
+        if (params.new) {
+          return { text: 'checkout -b', color: '#3b82f6', bgColor: '#eff6ff' };
+        }
+        return { text: 'checkout', color: '#6b7280', bgColor: '#f9fafb' };
+      case 'merge':
+        return { text: 'merge', color: '#10b981', bgColor: '#ecfdf5' };
+      case 'rebase':
+        return { text: 'rebase', color: '#f59e0b', bgColor: '#fffbeb' };
+      case 'push':
+        return { text: 'push', color: '#8b5cf6', bgColor: '#f3e8ff' };
+      case 'pull':
+        return { text: 'pull', color: '#06b6d4', bgColor: '#ecfeff' };
+      case 'delete-branch':
+        return { text: 'delete', color: '#ef4444', bgColor: '#fef2f2' };
+      case 'tag':
+        return { text: 'tag', color: '#f97316', bgColor: '#fff7ed' };
+      default:
+        return { text: operationType, color: '#6b7280', bgColor: '#f9fafb' };
+    }
+  };
+
+  const operationDisplay = getOperationDisplay(data.operationType, data.params);
+
   return (
     <>
-      <BaseEdge id={id} path={edgePath} style={{ stroke: '#333', strokeWidth: 2 }} />
+      <BaseEdge 
+        id={id} 
+        path={edgePath} 
+        style={{ 
+          stroke: selected ? '#667eea' : '#d1d5db', 
+          strokeWidth: selected ? 3 : 2,
+          strokeDasharray: data.operationType === 'checkout' && data.params?.new ? '5,5' : 'none'
+        }} 
+      />
       <EdgeLabelRenderer>
         <div
           style={{
             position: 'absolute',
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-            background: 'white',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            fontSize: '12px',
+            background: operationDisplay.bgColor,
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontSize: '11px',
             fontWeight: 600,
-            border: '1px solid #333',
-            color: '#333',
+            border: `1px solid ${operationDisplay.color}`,
+            color: operationDisplay.color,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            whiteSpace: 'nowrap',
+            letterSpacing: '0.3px',
           }}
           className="nodrag nopan"
         >
-          {data.operationType}
+          {operationDisplay.text}
         </div>
       </EdgeLabelRenderer>
     </>

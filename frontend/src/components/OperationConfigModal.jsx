@@ -9,7 +9,13 @@ const operationConfigs = {
     fields: [
       { name: 'new', label: 'Create New Branch', type: 'checkbox', default: true },
       { name: 'force', label: 'Force Checkout', type: 'checkbox', default: false },
-    ]
+    ],
+    getDynamicDescription: (formData) => {
+      if (formData.new) {
+        return 'Create a new branch and switch to it';
+      }
+      return 'Switch to an existing branch';
+    }
   },
   merge: {
     title: 'Merge Operation',
@@ -171,7 +177,9 @@ function OperationConfigModal({ edge, onSave, onCancel, onDelete }) {
             <span className="operation-icon">{config?.icon || '⚙️'}</span>
             <div>
               <h3>{config?.title || 'Operation Configuration'}</h3>
-              <p className="operation-description">{config?.description || 'Configure Git operation'}</p>
+              <p className="operation-description">
+                {config?.getDynamicDescription ? config.getDynamicDescription(formData) : (config?.description || 'Configure Git operation')}
+              </p>
             </div>
           </div>
           <button className="close-button" onClick={onCancel}>
