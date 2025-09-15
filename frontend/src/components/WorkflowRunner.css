@@ -1,0 +1,413 @@
+.workflow-runner {
+  display: flex;
+  flex-direction: column;
+  height: 80vh;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.runner-header {
+  background: #f8f9fa;
+  padding: 20px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.workflow-info h2 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 24px;
+}
+
+.workflow-info p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.runner-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.back-button {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.back-button:hover {
+  background: #5a6268;
+}
+
+.execute-button {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+  min-width: 150px;
+}
+
+.execute-button:hover:not(:disabled) {
+  background: #218838;
+}
+
+.execute-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.runner-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.workflow-visualization {
+  flex: 2;
+  position: relative;
+}
+
+.execution-panel {
+  flex: 1;
+  background: #f8f9fa;
+  border-left: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+}
+
+.panel-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.log-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.clear-button, .export-button {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s;
+}
+
+.clear-button:hover, .export-button:hover {
+  background: #5a6268;
+}
+
+.execution-log {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.no-logs {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  margin-top: 50px;
+}
+
+.log-entry {
+  margin-bottom: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.log-entry .timestamp {
+  color: #666;
+  margin-right: 8px;
+}
+
+.log-entry .message {
+  color: #333;
+}
+
+.log-entry.success .message {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.log-entry.error .message {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.log-entry.warning .message {
+  color: #ffc107;
+  font-weight: 500;
+}
+
+.log-entry.info .message {
+  color: #007bff;
+}
+
+/* Status-based node styling */
+.branch-node.status-pending {
+  border-color: #6c757d;
+}
+
+.branch-node.status-running {
+  border-color: #ffc107;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.branch-node.status-success {
+  border-color: #28a745;
+}
+
+.branch-node.status-failed {
+  border-color: #dc3545;
+}
+
+/* Status-based edge styling */
+.operation-edge.status-pending .operation-label {
+  opacity: 0.7;
+}
+
+.operation-edge.status-running .operation-label {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.operation-edge.status-success .operation-label {
+  background-color: #28a745 !important;
+}
+
+.operation-edge.status-failed .operation-label {
+  background-color: #dc3545 !important;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+  }
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.status-pending .status-indicator {
+  background-color: #6c757d;
+}
+
+.status-running .status-indicator {
+  background-color: #ffc107;
+  animation: blink 1s infinite;
+}
+
+.status-success .status-indicator {
+  background-color: #28a745;
+}
+
+.status-failed .status-indicator {
+  background-color: #dc3545;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+/* Branch Node Styles (copied from WorkflowEditor) */
+.branch-node {
+  background: white;
+  border: 3px solid #ddd;
+  border-radius: 12px;
+  min-width: 180px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.branch-node:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.branch-node.selected {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+}
+
+.branch-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 8px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid #dee2e6;
+}
+
+.branch-type-icon {
+  font-size: 16px;
+}
+
+.branch-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6c757d;
+}
+
+.branch-name {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  word-break: break-all;
+}
+
+.remote-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
+}
+
+/* Branch Type Specific Colors */
+.branch-node.production {
+  border-color: #dc3545;
+}
+
+.branch-node.production .branch-header {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+}
+
+.branch-node.production .branch-type {
+  color: #dc3545;
+}
+
+.branch-node.feature {
+  border-color: #007bff;
+}
+
+.branch-node.feature .branch-header {
+  background: linear-gradient(135deg, #cce7ff 0%, #b3d9ff 100%);
+}
+
+.branch-node.feature .branch-type {
+  color: #007bff;
+}
+
+.branch-node.release {
+  border-color: #28a745;
+}
+
+.branch-node.release .branch-header {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+}
+
+.branch-node.release .branch-type {
+  color: #28a745;
+}
+
+.branch-node.hotfix {
+  border-color: #ffc107;
+}
+
+.branch-node.hotfix .branch-header {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+}
+
+.branch-node.hotfix .branch-type {
+  color: #ffc107;
+}
+
+/* Operation Edge Styles */
+.operation-edge {
+  position: relative;
+}
+
+.operation-label {
+  background: white;
+  border: 2px solid #333;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.operation-edge.selected .operation-label {
+  border-color: #007bff;
+  background: #007bff;
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .runner-content {
+    flex-direction: column;
+  }
+  
+  .workflow-visualization {
+    height: 50vh;
+  }
+  
+  .execution-panel {
+    border-left: none;
+    border-top: 1px solid #ddd;
+  }
+  
+  .runner-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .runner-controls {
+    justify-content: center;
+  }
+}

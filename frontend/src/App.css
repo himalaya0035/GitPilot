@@ -1,0 +1,200 @@
+.App {
+  text-align: center;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.App-header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.App-header nav {
+  display: flex;
+  gap: 10px;
+}
+
+.App-header button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #61dafb;
+  color: #282c34;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.App-header button:hover:not(:disabled) {
+  background-color: #21a0c4;
+}
+
+.App-header button.active {
+  background-color: #21a0c4;
+}
+
+.App-header button:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+main {
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.workflow-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.controls button {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.controls button:hover {
+  background-color: #f0f0f0;
+}
+
+.controls button.primary {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.controls button.primary:hover {
+  background-color: #0056b3;
+}
+
+.controls button.danger {
+  background-color: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.controls button.danger:hover {
+  background-color: #c82333;
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-pending { background-color: #6c757d; }
+.status-running { background-color: #ffc107; }
+.status-success { background-color: #28a745; }
+.status-failed { background-color: #dc3545; }
+
+.node-config {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  z-index: 1000;
+  min-width: 300px;
+}
+
+.node-config h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.node-config .form-group {
+  margin-bottom: 15px;
+}
+
+.node-config label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.node-config input, .node-config select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.node-config .form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.node-config button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.node-config button.primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.node-config button.secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.execution-log {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 15px;
+  margin-top: 20px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+
+.log-entry {
+  margin-bottom: 5px;
+  padding: 2px 0;
+}
+
+.log-entry.success { color: #28a745; }
+.log-entry.error { color: #dc3545; }
+.log-entry.info { color: #007bff; }
+.log-entry.warning { color: #ffc107; }

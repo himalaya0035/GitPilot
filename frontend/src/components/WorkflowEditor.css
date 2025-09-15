@@ -1,0 +1,369 @@
+.workflow-editor {
+  display: flex;
+  height: 85vh;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.editor-controls {
+  width: 320px;
+  background: #f8f9fa;
+  border-right: 1px solid #ddd;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.workflow-name input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.palette-section {
+  margin-bottom: 20px;
+}
+
+.palette-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.branch-palette, .operation-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.palette-item {
+  padding: 16px;
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  cursor: grab;
+  text-align: center;
+  font-size: 15px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  min-height: 50px;
+}
+
+.palette-item:hover {
+  background: #e9ecef;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.palette-item:active {
+  cursor: grabbing;
+}
+
+.palette-item.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+}
+
+/* Branch Items */
+.branch-item {
+  border-style: dashed;
+}
+
+.branch-item.production {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.branch-item.feature {
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.branch-item.release {
+  border-color: #28a745;
+  color: #28a745;
+}
+
+.branch-item.hotfix {
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.branch-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Operation Items */
+.operation-item {
+  border-style: solid;
+  border-width: 2px;
+}
+
+.operation-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.editor-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.reactflow-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+/* Branch Node Styles */
+.branch-node {
+  background: white;
+  border: 3px solid #ddd;
+  border-radius: 12px;
+  min-width: 220px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.branch-node:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.branch-node.selected {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+}
+
+.branch-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 8px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid #dee2e6;
+}
+
+.branch-type-icon {
+  font-size: 20px;
+}
+
+.branch-type {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6c757d;
+}
+
+.branch-name {
+  padding: 14px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  word-break: break-all;
+}
+
+.remote-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
+}
+
+/* Branch Type Specific Colors */
+.branch-node.production {
+  border-color: #dc3545;
+}
+
+.branch-node.production .branch-header {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+}
+
+.branch-node.production .branch-type {
+  color: #dc3545;
+}
+
+.branch-node.feature {
+  border-color: #007bff;
+}
+
+.branch-node.feature .branch-header {
+  background: linear-gradient(135deg, #cce7ff 0%, #b3d9ff 100%);
+}
+
+.branch-node.feature .branch-type {
+  color: #007bff;
+}
+
+.branch-node.release {
+  border-color: #28a745;
+}
+
+.branch-node.release .branch-header {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+}
+
+.branch-node.release .branch-type {
+  color: #28a745;
+}
+
+.branch-node.hotfix {
+  border-color: #ffc107;
+}
+
+.branch-node.hotfix .branch-header {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+}
+
+.branch-node.hotfix .branch-type {
+  color: #ffc107;
+}
+
+/* Operation Edge Styles */
+.operation-edge {
+  position: relative;
+}
+
+.operation-label {
+  background: white;
+  border: 2px solid #333;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.operation-edge.selected .operation-label {
+  border-color: #007bff;
+  background: #007bff;
+  color: white;
+}
+
+/* React Flow Overrides */
+.react-flow__node {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.react-flow__edge-path {
+  stroke: #333;
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #007bff;
+  stroke-width: 4;
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 8;
+  animation: dashdraw 1s linear infinite;
+}
+
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.react-flow__edge-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.react-flow__controls {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.react-flow__minimap {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.react-flow__background {
+  background-color: #fafafa;
+}
+
+.react-flow__connection-line {
+  stroke: #007bff;
+  stroke-width: 2;
+  stroke-dasharray: 5;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .editor-controls {
+    width: 280px;
+  }
+  
+  .palette-item {
+    padding: 14px;
+    font-size: 14px;
+    min-height: 45px;
+  }
+}
+
+@media (max-width: 768px) {
+  .workflow-editor {
+    flex-direction: column;
+    height: 90vh;
+  }
+  
+  .editor-controls {
+    width: 100%;
+    height: 200px;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  
+  .palette-section {
+    min-width: 200px;
+    margin-right: 20px;
+  }
+  
+  .branch-palette, .operation-palette {
+    flex-direction: row;
+    gap: 8px;
+  }
+  
+  .palette-item {
+    min-width: 80px;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    min-height: 40px;
+  }
+}
