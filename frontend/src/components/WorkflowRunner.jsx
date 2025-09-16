@@ -16,6 +16,8 @@ const branchNodeTypes = {
   feature: FeatureBranchNode,
   release: ReleaseBranchNode,
   hotfix: HotfixBranchNode,
+  develop: DevelopBranchNode,
+  staging: StagingBranchNode,
 };
 
 // Operation edge types
@@ -345,6 +347,34 @@ function HotfixBranchNode({ data, selected }) {
       <div className="branch-header">
         <div className="branch-type-icon">🚨</div>
         <span className="branch-type">HOTFIX</span>
+        <span className="status-indicator"></span>
+      </div>
+      <div className="branch-name">{data.name}</div>
+      {data.isRemote && <div className="remote-indicator">🌐</div>}
+    </div>
+  );
+}
+
+function DevelopBranchNode({ data, selected }) {
+  return (
+    <div className={`branch-node develop status-${data.status} ${selected ? 'selected' : ''}`}>
+      <div className="branch-header">
+        <div className="branch-type-icon">⚙️</div>
+        <span className="branch-type">DEVELOP</span>
+        <span className="status-indicator"></span>
+      </div>
+      <div className="branch-name">{data.name}</div>
+      {data.isRemote && <div className="remote-indicator">🌐</div>}
+    </div>
+  );
+}
+
+function StagingBranchNode({ data, selected }) {
+  return (
+    <div className={`branch-node staging status-${data.status} ${selected ? 'selected' : ''}`}>
+      <div className="branch-header">
+        <div className="branch-type-icon">🧪</div>
+        <span className="branch-type">STAGING</span>
         <span className="status-indicator"></span>
       </div>
       <div className="branch-name">{data.name}</div>

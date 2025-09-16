@@ -25,6 +25,18 @@ const branchTypeConfigs = {
     icon: '🚨',
     description: 'Critical bug fix branch',
     defaultProtection: 'moderate'
+  },
+  develop: {
+    title: 'Develop Branch Configuration',
+    icon: '⚙️',
+    description: 'Integration branch for features',
+    defaultProtection: 'moderate'
+  },
+  staging: {
+    title: 'Staging Branch Configuration',
+    icon: '🧪',
+    description: 'Pre-production testing environment',
+    defaultProtection: 'moderate'
   }
 };
 

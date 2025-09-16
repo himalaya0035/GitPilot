@@ -119,6 +119,18 @@
   background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
 }
 
+.branch-item.develop {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+  background: linear-gradient(135deg, #f3e8ff 0%, #ffffff 100%);
+}
+
+.branch-item.staging {
+  border-color: #06b6d4;
+  color: #06b6d4;
+  background: linear-gradient(135deg, #ecfeff 0%, #ffffff 100%);
+}
+
 .branch-icon {
   width: 16px;
   height: 16px;
@@ -359,6 +371,30 @@
 
 .branch-node.hotfix .branch-type {
   color: #ffc107;
+}
+
+.branch-node.develop {
+  border-color: #6f42c1;
+}
+
+.branch-node.develop .branch-header {
+  background: linear-gradient(135deg, #e2d9f3 0%, #d1c4e9 100%);
+}
+
+.branch-node.develop .branch-type {
+  color: #6f42c1;
+}
+
+.branch-node.staging {
+  border-color: #17a2b8;
+}
+
+.branch-node.staging .branch-header {
+  background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+}
+
+.branch-node.staging .branch-type {
+  color: #17a2b8;
 }
 
 /* Operation Edge Styles */

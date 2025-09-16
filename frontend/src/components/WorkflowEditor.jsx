@@ -24,6 +24,8 @@ const branchNodeTypes = {
   feature: FeatureBranchNode,
   release: ReleaseBranchNode,
   hotfix: HotfixBranchNode,
+  develop: DevelopBranchNode,
+  staging: StagingBranchNode,
 };
 
 // Operation edge types for configuration
@@ -565,6 +567,60 @@ function HotfixBranchNode({ data, selected }) {
       <div className="branch-header">
         <div className="branch-type-icon">🚨</div>
         <span className="branch-type">HOTFIX</span>
+      </div>
+      <div className="branch-name">{data.branchName}</div>
+      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
+    </div>
+  );
+}
+
+function DevelopBranchNode({ data, selected }) {
+  return (
+    <div className={`branch-node develop ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
+      <div className="branch-header">
+        <div className="branch-type-icon">⚙️</div>
+        <span className="branch-type">DEVELOP</span>
+      </div>
+      <div className="branch-name">{data.branchName}</div>
+      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
+    </div>
+  );
+}
+
+function StagingBranchNode({ data, selected }) {
+  return (
+    <div className={`branch-node staging ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={true}
+      />
+      <div className="branch-header">
+        <div className="branch-type-icon">🧪</div>
+        <span className="branch-type">STAGING</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
