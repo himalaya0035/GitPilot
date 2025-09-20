@@ -19,7 +19,7 @@ import OperationConfigModal from './OperationConfigModal';
 import WorkflowManager from './WorkflowManager';
 import { useWorkflows } from '../hooks/useWorkflows';
 import { useNotification } from '../contexts/NotificationContext';
-import { validateWorkflowName, validateWorkflowStructure, sanitizeWorkflowName } from '../utils/validation';
+import { sanitizeWorkflowName } from '../utils/validation';
 import './WorkflowEditor.css';
 
 // Branch node types
