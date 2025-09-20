@@ -16,6 +16,10 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import BranchConfigModal from './BranchConfigModal';
 import OperationConfigModal from './OperationConfigModal';
+import WorkflowManager from './WorkflowManager';
+import { useWorkflows } from '../hooks/useWorkflows';
+import { useNotification } from '../contexts/NotificationContext';
+import { validateWorkflowName, validateWorkflowStructure, sanitizeWorkflowName } from '../utils/validation';
 import './WorkflowEditor.css';
 
 // Branch node types
@@ -51,17 +55,23 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const [showOperationConfig, setShowOperationConfig] = useState(false);
   const [workflowName, setWorkflowName] = useState('');
   const [draggedItem, setDraggedItem] = useState(null);
+  const [showWorkflowManager, setShowWorkflowManager] = useState(false);
+  const [currentWorkflowId, setCurrentWorkflowId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
+  // Workflow management
+  const { saveWorkflow, updateWorkflow } = useWorkflows();
+  const { showSuccess, showError, showWarning } = useNotification();
+
   const isValidConnection = useCallback((connection) => {
-    console.log('Validating connection:', connection);
     return true; // Allow all connections for now
   }, []);
 
   const onConnect = useCallback(
     (params) => {
-      console.log('Connection attempt:', params);
       // Create a new operation edge with default merge operation
       const newEdge = {
         ...params,
@@ -75,7 +85,6 @@ function WorkflowEditor({ onWorkflowCreated }) {
         labelStyle: { fill: '#28a745', fontWeight: 600 },
         labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
       };
-      console.log('Creating edge:', newEdge);
       setEdges((eds) => addEdge(newEdge, eds));
     },
     [setEdges]
@@ -186,21 +195,17 @@ function WorkflowEditor({ onWorkflowCreated }) {
     setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
   }, [setEdges]);
 
-  const clearWorkflow = useCallback(() => {
-    setNodes([]);
-    setEdges([]);
-    setWorkflowName('');
-  }, [setNodes, setEdges]);
 
   const exportWorkflow = useCallback(() => {
-    if (!workflowName.trim()) {
-      alert('Please enter a workflow name');
+    const nameValidation = validateWorkflowName(workflowName);
+    if (!nameValidation.isValid) {
+      showWarning(nameValidation.error);
       return;
     }
 
     const workflow = {
-      workflowId: workflowName.toLowerCase().replace(/\s+/g, '-'),
-      name: workflowName,
+      workflowId: sanitizeWorkflowName(workflowName),
+      name: workflowName.trim(),
       branches: nodes.map((node) => ({
         id: node.id,
         name: node.data.branchName,
@@ -219,17 +224,110 @@ function WorkflowEditor({ onWorkflowCreated }) {
     };
 
     onWorkflowCreated(workflow);
-  }, [workflowName, nodes, edges, onWorkflowCreated]);
+  }, [workflowName, nodes, edges, onWorkflowCreated, showWarning]);
+
+  // Save workflow to storage
+  const saveWorkflowToStorage = useCallback(async () => {
+    const nameValidation = validateWorkflowName(workflowName);
+    if (!nameValidation.isValid) {
+      showWarning(nameValidation.error);
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const workflow = {
+        workflowId: sanitizeWorkflowName(workflowName),
+        name: workflowName.trim(),
+        branches: nodes.map((node) => ({
+          id: node.id,
+          name: node.data.branchName,
+          type: node.data.branchType,
+          isRemote: node.data.isRemote,
+          protection: node.data.protection,
+          position: node.position,
+        })),
+        operations: edges.map((edge) => ({
+          id: edge.id,
+          type: edge.data.operationType,
+          source: edge.source,
+          target: edge.target,
+          params: edge.data.params || {},
+        })),
+      };
+
+      if (currentWorkflowId) {
+        // Update existing workflow
+        await updateWorkflow(currentWorkflowId, workflow);
+        showSuccess('Workflow updated successfully!');
+      } else {
+        // Save new workflow
+        const savedWorkflow = await saveWorkflow(workflow);
+        setCurrentWorkflowId(savedWorkflow.id);
+        showSuccess('Workflow saved successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to save workflow:', error);
+      showError('Failed to save workflow. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [workflowName, nodes, edges, currentWorkflowId, saveWorkflow, updateWorkflow, showWarning, showSuccess, showError]);
+
+  // Load workflow from storage
+  const loadWorkflow = useCallback((workflow) => {
+    setWorkflowName(workflow.name);
+    setCurrentWorkflowId(workflow.id);
+
+    // Convert workflow data to nodes and edges
+    const loadedNodes = workflow.branches.map((branch) => ({
+      id: branch.id,
+      type: branch.type,
+      position: branch.position || { x: Math.random() * 400, y: Math.random() * 400 },
+      data: {
+        branchName: branch.name,
+        branchType: branch.type,
+        isRemote: branch.isRemote || false,
+        protection: branch.protection || 'none',
+      },
+    }));
+
+    const loadedEdges = workflow.operations.map((operation) => ({
+      id: operation.id,
+      source: operation.source,
+      target: operation.target,
+      type: 'operation',
+      data: {
+        operationType: operation.type,
+        params: operation.params || {},
+      },
+      label: operation.type,
+      labelStyle: { fill: operationTypes[operation.type]?.color || '#333', fontWeight: 600 },
+      labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
+    }));
+
+    setNodes(loadedNodes);
+    setEdges(loadedEdges);
+  }, [setNodes, setEdges]);
+
+  // Clear current workflow
+  const clearCurrentWorkflow = useCallback(() => {
+    setWorkflowName('');
+    setCurrentWorkflowId(null);
+    setNodes([]);
+    setEdges([]);
+  }, [setNodes, setEdges]);
 
   const exportWorkflowAsJSON = useCallback(() => {
-    if (!workflowName.trim()) {
-      alert('Please enter a workflow name');
+    const nameValidation = validateWorkflowName(workflowName);
+    if (!nameValidation.isValid) {
+      showWarning(nameValidation.error);
       return;
     }
 
     const workflow = {
-      workflowId: workflowName.toLowerCase().replace(/\s+/g, '-'),
-      name: workflowName,
+      workflowId: sanitizeWorkflowName(workflowName),
+      name: workflowName.trim(),
       branches: nodes.map((node) => ({
         id: node.id,
         name: node.data.branchName,
@@ -257,20 +355,22 @@ function WorkflowEditor({ onWorkflowCreated }) {
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
-  }, [workflowName, nodes, edges]);
+  }, [workflowName, nodes, edges, showWarning]);
 
   const importWorkflowFromJSON = useCallback((event) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    setIsLoading(true);
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const workflow = JSON.parse(e.target.result);
         
         // Validate workflow structure
-        if (!workflow.name || !workflow.branches || !workflow.operations) {
-          alert('Invalid workflow file: Missing required fields (name, branches, operations)');
+        const structureValidation = validateWorkflowStructure(workflow);
+        if (!structureValidation.isValid) {
+          showError(`Invalid workflow file: ${structureValidation.errors.join(', ')}`);
           return;
         }
 
@@ -305,10 +405,12 @@ function WorkflowEditor({ onWorkflowCreated }) {
         setNodes(importedNodes);
         setEdges(importedEdges);
         
-        alert(`Successfully imported workflow: ${workflow.name}`);
+        showSuccess(`Successfully imported workflow: ${workflow.name}`);
       } catch (error) {
-        alert('Error importing workflow: Invalid JSON file');
+        showError('Error importing workflow: Invalid JSON file');
         console.error('Import error:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -316,7 +418,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
     
     // Reset file input
     event.target.value = '';
-  }, [setNodes, setEdges]);
+  }, [setNodes, setEdges, showError, showSuccess]);
 
   const onDragStart = (event, itemType) => {
     event.dataTransfer.setData('application/reactflow', itemType);
@@ -368,8 +470,11 @@ function WorkflowEditor({ onWorkflowCreated }) {
               style={{ display: 'none' }}
               id="import-workflow"
             />
-            <label htmlFor="import-workflow" className="import-button">
-              📁 Import JSON
+            <label 
+              htmlFor="import-workflow" 
+              className={`import-button ${isLoading ? 'loading' : ''}`}
+            >
+              {isLoading ? '⏳ Importing...' : '📁 Import JSON'}
             </label>
             <button onClick={exportWorkflowAsJSON} className="export-button">
               💾 Export JSON
@@ -377,8 +482,18 @@ function WorkflowEditor({ onWorkflowCreated }) {
           </div>
           
           <div className="workflow-actions">
-            <button onClick={clearWorkflow} className="danger">
+            <button onClick={clearCurrentWorkflow} className="danger">
               Clear All
+            </button>
+            <button onClick={() => setShowWorkflowManager(true)} className="secondary">
+              📂 Load Workflow
+            </button>
+            <button 
+              onClick={saveWorkflowToStorage} 
+              className="primary"
+              disabled={isSaving}
+            >
+              {isSaving ? '⏳ Saving...' : `💾 ${currentWorkflowId ? 'Update' : 'Save'} Workflow`}
             </button>
             <button onClick={exportWorkflow} className="primary">
               Create Workflow
@@ -466,6 +581,13 @@ function WorkflowEditor({ onWorkflowCreated }) {
             setShowOperationConfig(false);
             setSelectedEdge(null);
           }}
+        />
+      )}
+
+      {showWorkflowManager && (
+        <WorkflowManager
+          onLoadWorkflow={loadWorkflow}
+          onClose={() => setShowWorkflowManager(false)}
         />
       )}
     </div>

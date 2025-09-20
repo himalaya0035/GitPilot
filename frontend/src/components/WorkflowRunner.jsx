@@ -36,7 +36,6 @@ function WorkflowRunner({ workflow, onBackToEditor }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionLog, setExecutionLog] = useState([]);
-  // const [executionStatus, setExecutionStatus] = useState({});
 
   useEffect(() => {
     if (workflow) {
@@ -71,7 +70,6 @@ function WorkflowRunner({ workflow, onBackToEditor }) {
 
       setNodes(flowNodes);
       setEdges(flowEdges);
-      // setExecutionStatus({});
     }
   }, [workflow, setNodes, setEdges]);
 

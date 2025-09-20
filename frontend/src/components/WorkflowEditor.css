@@ -260,6 +260,16 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+.workflow-actions button.secondary {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+}
+
+.workflow-actions button.secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
 .reactflow-wrapper {
   flex: 1;
   position: relative;

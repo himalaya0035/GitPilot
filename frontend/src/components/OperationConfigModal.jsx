@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotification } from '../contexts/NotificationContext';
 import './OperationConfigModal.css';
 
 const operationConfigs = {
@@ -83,6 +84,7 @@ function OperationConfigModal({ edge, onSave, onCancel, onDelete }) {
   const [formData, setFormData] = useState({});
   const [operationType, setOperationType] = useState(edge.data.operationType || 'merge');
   const config = operationConfigs[operationType];
+  const { showWarning } = useNotification();
 
   useEffect(() => {
     // Initialize form data with existing edge data or defaults
@@ -118,7 +120,7 @@ function OperationConfigModal({ edge, onSave, onCancel, onDelete }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (config.fields.some(field => field.required && !formData[field.name])) {
-      alert('Please fill in all required fields');
+      showWarning('Please fill in all required fields');
       return;
     }
     onSave({

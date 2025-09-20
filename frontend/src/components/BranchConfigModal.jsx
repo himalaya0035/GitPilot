@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNotification } from '../contexts/NotificationContext';
+import { validateBranchName, sanitizeBranchName } from '../utils/validation';
 import './BranchConfigModal.css';
 
 const branchTypeConfigs = {
@@ -43,6 +45,7 @@ const branchTypeConfigs = {
 function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
   const [formData, setFormData] = useState({});
   const config = branchTypeConfigs[branch.data.branchType];
+  const { showWarning } = useNotification();
 
   useEffect(() => {
     // Initialize form data with existing branch data or defaults
@@ -63,11 +66,19 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.branchName.trim()) {
-      alert('Branch name is required');
+    const nameValidation = validateBranchName(formData.branchName);
+    if (!nameValidation.isValid) {
+      showWarning(nameValidation.error);
       return;
     }
-    onSave(formData);
+    
+    // Sanitize the branch name before saving
+    const sanitizedData = {
+      ...formData,
+      branchName: sanitizeBranchName(formData.branchName)
+    };
+    
+    onSave(sanitizedData);
   };
 
   const protectionOptions = [
