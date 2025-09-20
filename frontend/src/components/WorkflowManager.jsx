@@ -122,19 +122,20 @@ function WorkflowManager({ onLoadWorkflow, onClose }) {
 
   return (
     <div className="workflow-manager">
-      <div className="workflow-manager-header">
-        <h2>Workflow Manager</h2>
-        <button className="close-button" onClick={onClose}>×</button>
-      </div>
-
-      {error && (
-        <div className="error-message">
-          <p>{error}</p>
-          <button onClick={clearError}>Dismiss</button>
-        </div>
-      )}
-
       <div className="workflow-manager-content">
+        <div className="workflow-manager-header">
+          <h2>Workflow Manager</h2>
+          <button className="close-button" onClick={onClose}>×</button>
+        </div>
+
+        {error && (
+          <div className="error-message">
+            <p>{error}</p>
+            <button onClick={clearError}>Dismiss</button>
+          </div>
+        )}
+
+        <div className="workflow-manager-body">
         <div className="workflow-actions">
           <div className="search-section">
             <input
@@ -154,9 +155,13 @@ function WorkflowManager({ onLoadWorkflow, onClose }) {
               id="import-workflow-file"
               style={{ display: 'none' }}
             />
-            <label htmlFor="import-workflow-file" className="import-button">
+            <button 
+              type="button"
+              onClick={() => document.getElementById('import-workflow-file').click()}
+              className="import-button"
+            >
               📁 Import Workflow
-            </label>
+            </button>
           </div>
         </div>
 
@@ -182,12 +187,6 @@ function WorkflowManager({ onLoadWorkflow, onClose }) {
                     {workflow.description || 'No description'}
                   </p>
                   <div className="workflow-meta">
-                    <span className="branch-count">
-                      {workflow.branches?.length || 0} branches
-                    </span>
-                    <span className="operation-count">
-                      {workflow.operations?.length || 0} operations
-                    </span>
                     <span className="created-date">
                       {formatDate(workflow.createdAt)}
                     </span>
@@ -203,7 +202,7 @@ function WorkflowManager({ onLoadWorkflow, onClose }) {
                     }}
                     title="Load workflow"
                   >
-                    📂
+                    Load
                   </button>
                   <button
                     className="action-button duplicate-button"
@@ -214,7 +213,7 @@ function WorkflowManager({ onLoadWorkflow, onClose }) {
                     }}
                     title="Duplicate workflow"
                   >
-                    📋
+                    Copy
                   </button>
                   <button
                     className="action-button export-button"
@@ -224,7 +223,7 @@ function WorkflowManager({ onLoadWorkflow, onClose }) {
                     }}
                     title="Export workflow"
                   >
-                    💾
+                    Export
                   </button>
                   <button
                     className="action-button delete-button"
@@ -234,12 +233,13 @@ function WorkflowManager({ onLoadWorkflow, onClose }) {
                     }}
                     title="Delete workflow"
                   >
-                    🗑️
+                    Delete
                   </button>
                 </div>
               </div>
             ))
           )}
+        </div>
         </div>
       </div>
 

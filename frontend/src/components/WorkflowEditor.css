@@ -7,15 +7,347 @@
 }
 
 .editor-controls {
-  width: 320px;
+  width: 350px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border-right: 1px solid rgba(0,0,0,0.06);
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 2px 0 20px rgba(0,0,0,0.04);
+}
+
+/* Workflow Controls */
+.workflow-controls {
+  margin-bottom: 0;
+}
+
+.workflow-name-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+/* Workflow Name Display */
+.workflow-name-display {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 10px;
+  background: white;
+  min-height: 48px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.workflow-name-display:hover {
+  border-color: rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.workflow-name-text {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+  flex: 1;
+}
+
+.edit-name-button {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+}
+
+.workflow-name-display:hover .edit-name-button {
+  opacity: 1;
+}
+
+.edit-name-button:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+/* Workflow Name Edit Mode */
+.workflow-name-edit-container {
+  flex: 1;
+  position: relative;
+  width: 100%;
+}
+
+.workflow-name-edit-input {
+  width: 100%;
+  padding: 12px 80px 12px 16px;
+  border: 1px solid #667eea;
+  border-radius: 10px;
+  font-size: 14px;
+  background: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.workflow-name-edit-input:focus {
+  outline: none;
+  border-color: #5a67d8;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.workflow-name-edit-input.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.workflow-name-edit-input.error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.workflow-name-edit-actions {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.edit-action-button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-action-button.save {
+  background: #3b82f6;
+  color: white;
+}
+
+.edit-action-button.save:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.edit-action-button.cancel {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.edit-action-button.cancel:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.edit-action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.edit-action-button:disabled:hover {
+  background: #3b82f6;
+  transform: none;
+}
+
+.workflow-name-error {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #dc2626;
+  margin-top: 4px;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.actions-menu-button {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid rgba(0,0,0,0.08);
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.actions-menu-button:hover {
+  background: #e2e8f0;
+  color: #475569;
+  border-color: rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Section Divider */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.1) 50%, transparent 100%);
+  margin: 8px 0;
+}
+
+/* Menu Bar - Legacy */
+.menu-bar {
+  margin-bottom: 16px;
+}
+
+.menu-item {
+  position: relative;
+  display: inline-block;
+}
+
+.menu-button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+.menu-button:hover {
+  background: #5a67d8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.dropdown-menu {
+  position: fixed;
+  background: white;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 10000;
+  min-width: 180px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+}
+
+.menu-item:hover .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: #f8fafc;
+}
+
+.dropdown-item.danger {
+  color: #ef4444;
+}
+
+.dropdown-item.danger:hover {
+  background: #fef2f2;
+}
+
+.dropdown-group {
+  padding: 4px 0;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 4px 0;
+}
+
+.dropdown-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dropdown-item:disabled:hover {
+  background: none;
+}
+
+/* Import Section */
+
+.import-button {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.import-button:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.import-button.loading {
+  background: #6b7280;
+  cursor: not-allowed;
 }
 
 .workflow-name input {
@@ -40,7 +372,7 @@
 }
 
 .palette-section h4 {
-  margin: 0 0 16px 0;
+  margin: 0 0 12px 0;
   color: #1a202c;
   font-size: 13px;
   font-weight: 600;

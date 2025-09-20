@@ -58,9 +58,13 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const [showWorkflowManager, setShowWorkflowManager] = useState(false);
   const [currentWorkflowId, setCurrentWorkflowId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const fileButtonRef = useRef(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempWorkflowName, setTempWorkflowName] = useState('');
+  const [nameValidationError, setNameValidationError] = useState('');
 
   // Workflow management
   const { saveWorkflow, updateWorkflow } = useWorkflows();
@@ -196,35 +200,6 @@ function WorkflowEditor({ onWorkflowCreated }) {
   }, [setEdges]);
 
 
-  const exportWorkflow = useCallback(() => {
-    const nameValidation = validateWorkflowName(workflowName);
-    if (!nameValidation.isValid) {
-      showWarning(nameValidation.error);
-      return;
-    }
-
-    const workflow = {
-      workflowId: sanitizeWorkflowName(workflowName),
-      name: workflowName.trim(),
-      branches: nodes.map((node) => ({
-        id: node.id,
-        name: node.data.branchName,
-        type: node.data.branchType,
-        isRemote: node.data.isRemote,
-        protection: node.data.protection,
-        position: node.position,
-      })),
-      operations: edges.map((edge) => ({
-        id: edge.id,
-        type: edge.data.operationType,
-        source: edge.source,
-        target: edge.target,
-        params: edge.data.params || {},
-      })),
-    };
-
-    onWorkflowCreated(workflow);
-  }, [workflowName, nodes, edges, onWorkflowCreated, showWarning]);
 
   // Save workflow to storage
   const saveWorkflowToStorage = useCallback(async () => {
@@ -357,68 +332,6 @@ function WorkflowEditor({ onWorkflowCreated }) {
     linkElement.click();
   }, [workflowName, nodes, edges, showWarning]);
 
-  const importWorkflowFromJSON = useCallback((event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    setIsLoading(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const workflow = JSON.parse(e.target.result);
-        
-        // Validate workflow structure
-        const structureValidation = validateWorkflowStructure(workflow);
-        if (!structureValidation.isValid) {
-          showError(`Invalid workflow file: ${structureValidation.errors.join(', ')}`);
-          return;
-        }
-
-        // Set workflow name
-        setWorkflowName(workflow.name);
-
-        // Convert branches to nodes
-        const importedNodes = workflow.branches.map((branch) => ({
-          id: branch.id,
-          type: branch.type,
-          position: branch.position || { x: Math.random() * 400, y: Math.random() * 300 },
-          data: {
-            branchName: branch.name,
-            branchType: branch.type,
-            isRemote: branch.isRemote || false,
-            protection: branch.protection || {},
-          },
-        }));
-
-        // Convert operations to edges
-        const importedEdges = workflow.operations.map((operation) => ({
-          id: operation.id,
-          source: operation.source,
-          target: operation.target,
-          type: 'operation',
-          data: {
-            operationType: operation.type,
-            params: operation.params || {},
-          },
-        }));
-
-        setNodes(importedNodes);
-        setEdges(importedEdges);
-        
-        showSuccess(`Successfully imported workflow: ${workflow.name}`);
-      } catch (error) {
-        showError('Error importing workflow: Invalid JSON file');
-        console.error('Import error:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    reader.readAsText(file);
-    
-    // Reset file input
-    event.target.value = '';
-  }, [setNodes, setEdges, showError, showSuccess]);
 
   const onDragStart = (event, itemType) => {
     event.dataTransfer.setData('application/reactflow', itemType);
@@ -430,19 +343,192 @@ function WorkflowEditor({ onWorkflowCreated }) {
     setDraggedItem(null);
   };
 
+  const handleFileButtonMouseEnter = () => {
+    if (fileButtonRef.current) {
+      const rect = fileButtonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left
+      });
+    }
+  };
+
+  const validateWorkflowName = (name) => {
+    const trimmedName = name.trim();
+    
+    if (!trimmedName) {
+      return "Workflow name is required";
+    }
+    
+    if (trimmedName.length < 2) {
+      return "Name must be at least 2 characters";
+    }
+    
+    if (trimmedName.length > 50) {
+      return "Name cannot exceed 50 characters";
+    }
+    
+    if (name !== trimmedName) {
+      return "Name cannot start or end with spaces";
+    }
+    
+    if (trimmedName.includes('  ')) {
+      return "Name cannot contain consecutive spaces";
+    }
+    
+    // Allow letters, numbers, spaces, hyphens, underscores, and @
+    const validPattern = /^[a-zA-Z0-9\s\-_@]+$/;
+    if (!validPattern.test(trimmedName)) {
+      return "Invalid characters detected. Only letters, numbers, spaces, hyphens, underscores, and @ are allowed";
+    }
+    
+    return null;
+  };
+
+  const handleEditName = () => {
+    setTempWorkflowName(workflowName);
+    setIsEditingName(true);
+    setNameValidationError('');
+  };
+
+  const handleSaveName = () => {
+    const validationError = validateWorkflowName(tempWorkflowName);
+    if (validationError) {
+      setNameValidationError(validationError);
+      return;
+    }
+    
+    setWorkflowName(tempWorkflowName.trim());
+    setIsEditingName(false);
+    setNameValidationError('');
+  };
+
+  const handleCancelEdit = () => {
+    setTempWorkflowName('');
+    setIsEditingName(false);
+    setNameValidationError('');
+  };
+
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setTempWorkflowName(value);
+    
+    // Clear validation error when user starts typing
+    if (nameValidationError) {
+      setNameValidationError('');
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSaveName();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
 
   return (
     <div className="workflow-editor">
       <div className="editor-controls">
-        <div className="workflow-name">
-          <input
-            type="text"
-            placeholder="Enter workflow name..."
-            value={workflowName}
-            onChange={(e) => setWorkflowName(e.target.value)}
-          />
+        {/* Workflow Controls */}
+        <div className="workflow-controls">
+          <div className="workflow-name-container">
+            <div className="menu-item">
+              <button 
+                ref={fileButtonRef}
+                className="actions-menu-button"
+                onMouseEnter={handleFileButtonMouseEnter}
+                title="Workflow Actions"
+              >
+                ⋮
+              </button>
+              <div 
+                className="dropdown-menu"
+                style={{
+                  top: `${dropdownPosition.top}px`,
+                  left: `${dropdownPosition.left}px`
+                }}
+              >
+                <div className="dropdown-group">
+                  <button onClick={() => setShowWorkflowManager(true)} className="dropdown-item">
+                    Open Workflow
+                  </button>
+                  <button 
+                    onClick={saveWorkflowToStorage} 
+                    className="dropdown-item"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save Workflow'}
+                  </button>
+                  <button onClick={exportWorkflowAsJSON} className="dropdown-item">
+                    Export Workflow
+                  </button>
+                </div>
+                <div className="dropdown-divider"></div>
+                <button onClick={clearCurrentWorkflow} className="dropdown-item danger">
+                  Clear All
+                </button>
+              </div>
+            </div>
+            {isEditingName ? (
+              <div className="workflow-name-edit-container">
+                <input
+                  type="text"
+                  value={tempWorkflowName}
+                  onChange={handleNameChange}
+                  onKeyDown={handleKeyPress}
+                  className={`workflow-name-edit-input ${nameValidationError ? 'error' : ''}`}
+                  placeholder="Enter workflow name..."
+                  autoFocus
+                />
+                <div className="workflow-name-edit-actions">
+                  <button 
+                    onClick={handleSaveName}
+                    className="edit-action-button save"
+                    title="Save"
+                    disabled={!!nameValidationError}
+                  >
+                    ✓
+                  </button>
+                  <button 
+                    onClick={handleCancelEdit}
+                    className="edit-action-button cancel"
+                    title="Cancel"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {nameValidationError && (
+                  <div className="workflow-name-error">
+                    {nameValidationError}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="workflow-name-display">
+                <span className="workflow-name-text">
+                  {workflowName || 'Untitled'}
+                </span>
+                <button 
+                  onClick={handleEditName}
+                  className="edit-name-button"
+                  title="Edit workflow name"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Section Divider */}
+        <div className="section-divider"></div>
         
+        {/* Branch Palette */}
         <div className="palette-section">
           <h4>Git Branches</h4>
           <div className="branch-palette">
@@ -461,59 +547,6 @@ function WorkflowEditor({ onWorkflowCreated }) {
           </div>
         </div>
 
-        <div className="editor-actions">
-          <div className="import-export-section">
-            <input
-              type="file"
-              accept=".json"
-              onChange={importWorkflowFromJSON}
-              style={{ display: 'none' }}
-              id="import-workflow"
-            />
-            <label 
-              htmlFor="import-workflow" 
-              className={`import-button ${isLoading ? 'loading' : ''}`}
-            >
-              {isLoading ? '⏳ Importing...' : '📁 Import JSON'}
-            </label>
-            <button onClick={exportWorkflowAsJSON} className="export-button">
-              💾 Export JSON
-            </button>
-          </div>
-          
-          <div className="workflow-actions">
-            <button onClick={clearCurrentWorkflow} className="danger">
-              Clear All
-            </button>
-            <button onClick={() => setShowWorkflowManager(true)} className="secondary">
-              📂 Load Workflow
-            </button>
-            <button 
-              onClick={saveWorkflowToStorage} 
-              className="primary"
-              disabled={isSaving}
-            >
-              {isSaving ? '⏳ Saving...' : `💾 ${currentWorkflowId ? 'Update' : 'Save'} Workflow`}
-            </button>
-            <button onClick={exportWorkflow} className="primary">
-              Create Workflow
-            </button>
-          </div>
-        </div>
-
-        <div className="palette-section">
-          <h4>Instructions</h4>
-          <div className="connection-instructions">
-            <p><strong>How to create workflows:</strong></p>
-            <p>1. Drag branches to canvas</p>
-            <p>2. Drag from one branch to another to connect</p>
-            <p>3. Click on connections to change operation type</p>
-            <p>4. Click on branches to configure properties</p>
-            <p><strong>Import/Export:</strong></p>
-            <p>• Import JSON: Load existing workflows</p>
-            <p>• Export JSON: Save workflow as file</p>
-          </div>
-        </div>
       </div>
 
       <div className="reactflow-wrapper" ref={reactFlowWrapper}>
