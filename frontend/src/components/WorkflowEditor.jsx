@@ -204,8 +204,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
   // Save workflow to storage
   const saveWorkflowToStorage = useCallback(async () => {
     const nameValidation = validateWorkflowName(workflowName);
-    if (!nameValidation.isValid) {
-      showWarning(nameValidation.error);
+    if (nameValidation) {
+      showWarning(nameValidation);
       return;
     }
 
@@ -295,8 +295,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
 
   const exportWorkflowAsJSON = useCallback(() => {
     const nameValidation = validateWorkflowName(workflowName);
-    if (!nameValidation.isValid) {
-      showWarning(nameValidation.error);
+    if (nameValidation) {
+      showWarning(nameValidation);
       return;
     }
 
