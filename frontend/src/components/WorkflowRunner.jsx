@@ -8,6 +8,7 @@ import ReactFlow, {
   MiniMap,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import WorkflowManager from './WorkflowManager';
 import './WorkflowRunner.css';
 
 // Branch node types (same as editor)
@@ -31,11 +32,19 @@ const operationTypes = {
   tag: { label: 'tag', color: '#fd7e14' },
 };
 
-function WorkflowRunner({ workflow, onBackToEditor }) {
+function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionLog, setExecutionLog] = useState([]);
+  const [showWorkflowSelector, setShowWorkflowSelector] = useState(false);
+
+  const handleWorkflowSelected = (selectedWorkflow) => {
+    if (onWorkflowChange) {
+      onWorkflowChange(selectedWorkflow);
+    }
+    setShowWorkflowSelector(false);
+  };
 
   useEffect(() => {
     if (workflow) {
@@ -235,6 +244,12 @@ function WorkflowRunner({ workflow, onBackToEditor }) {
             ← Back to Editor
           </button>
           <button 
+            onClick={() => setShowWorkflowSelector(true)} 
+            className="load-workflow-button"
+          >
+            Load Another Workflow
+          </button>
+          <button 
             onClick={executeWorkflow} 
             disabled={isExecuting}
             className="execute-button"
@@ -292,6 +307,29 @@ function WorkflowRunner({ workflow, onBackToEditor }) {
           </div>
         </div>
       </div>
+
+      {showWorkflowSelector && (
+        <div className="modal-overlay">
+          <div className="workflow-selector-modal">
+            <div className="modal-header">
+              <h2>Select Workflow to Run</h2>
+              <button 
+                className="close-button"
+                onClick={() => setShowWorkflowSelector(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-content">
+              <WorkflowManager 
+                onLoadWorkflow={handleWorkflowSelected}
+                onClose={() => setShowWorkflowSelector(false)}
+                showOnlyLoad={true}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
