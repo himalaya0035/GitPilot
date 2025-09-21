@@ -6,6 +6,11 @@ import ReactFlow, {
   Controls,
   Background,
   MiniMap,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
+  Handle,
+  Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import WorkflowManager from './WorkflowManager';
@@ -338,6 +343,13 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
 function ProductionBranchNode({ data, selected }) {
   return (
     <div className={`branch-node production status-${data.status} ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
       <div className="branch-header">
         <div className="branch-type-icon">🏭</div>
         <span className="branch-type">PROD</span>
@@ -345,6 +357,13 @@ function ProductionBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
     </div>
   );
 }
@@ -352,6 +371,13 @@ function ProductionBranchNode({ data, selected }) {
 function FeatureBranchNode({ data, selected }) {
   return (
     <div className={`branch-node feature status-${data.status} ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
       <div className="branch-header">
         <div className="branch-type-icon">🔧</div>
         <span className="branch-type">FEATURE</span>
@@ -359,6 +385,13 @@ function FeatureBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
     </div>
   );
 }
@@ -366,6 +399,13 @@ function FeatureBranchNode({ data, selected }) {
 function ReleaseBranchNode({ data, selected }) {
   return (
     <div className={`branch-node release status-${data.status} ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
       <div className="branch-header">
         <div className="branch-type-icon">🚀</div>
         <span className="branch-type">RELEASE</span>
@@ -373,6 +413,13 @@ function ReleaseBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
     </div>
   );
 }
@@ -380,6 +427,13 @@ function ReleaseBranchNode({ data, selected }) {
 function HotfixBranchNode({ data, selected }) {
   return (
     <div className={`branch-node hotfix status-${data.status} ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
       <div className="branch-header">
         <div className="branch-type-icon">🚨</div>
         <span className="branch-type">HOTFIX</span>
@@ -387,6 +441,13 @@ function HotfixBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
     </div>
   );
 }
@@ -394,6 +455,13 @@ function HotfixBranchNode({ data, selected }) {
 function DevelopBranchNode({ data, selected }) {
   return (
     <div className={`branch-node develop status-${data.status} ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
       <div className="branch-header">
         <div className="branch-type-icon">⚙️</div>
         <span className="branch-type">DEVELOP</span>
@@ -401,6 +469,13 @@ function DevelopBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
     </div>
   );
 }
@@ -408,6 +483,13 @@ function DevelopBranchNode({ data, selected }) {
 function StagingBranchNode({ data, selected }) {
   return (
     <div className={`branch-node staging status-${data.status} ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
       <div className="branch-header">
         <div className="branch-type-icon">🧪</div>
         <span className="branch-type">STAGING</span>
@@ -415,12 +497,28 @@ function StagingBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
     </div>
   );
 }
 
 // Operation Edge Component with Status
-function OperationEdge({ data, selected }) {
+function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected }) {
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+
   // Get operation display text and styling based on type and params
   const getOperationDisplay = (operationType, params = {}) => {
     switch (operationType) {
@@ -447,26 +545,40 @@ function OperationEdge({ data, selected }) {
   };
 
   const operationDisplay = getOperationDisplay(data.operationType, data.params);
-  
+
   return (
-    <div className={`operation-edge status-${data.status} ${selected ? 'selected' : ''}`}>
-      <div 
-        className="operation-label"
+    <>
+      <BaseEdge 
+        id={id} 
+        path={edgePath} 
         style={{ 
-          backgroundColor: operationDisplay.bgColor,
-          color: operationDisplay.color,
-          border: `1px solid ${operationDisplay.color}`,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          borderRadius: '8px',
-          padding: '6px 12px',
-          fontSize: '11px',
-          fontWeight: 600,
-          letterSpacing: '0.3px',
-        }}
-      >
-        {operationDisplay.text}
-      </div>
-    </div>
+          stroke: selected ? '#667eea' : '#d1d5db', 
+          strokeWidth: selected ? 3 : 2,
+          strokeDasharray: data.operationType === 'checkout' && data.params?.new ? '5,5' : 'none'
+        }} 
+      />
+      <EdgeLabelRenderer>
+        <div
+          style={{
+            position: 'absolute',
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            background: operationDisplay.bgColor,
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontSize: '11px',
+            fontWeight: 600,
+            border: `1px solid ${operationDisplay.color}`,
+            color: operationDisplay.color,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            whiteSpace: 'nowrap',
+            letterSpacing: '0.3px',
+          }}
+          className="nodrag nopan"
+        >
+          {operationDisplay.text}
+        </div>
+      </EdgeLabelRenderer>
+    </>
   );
 }
 
