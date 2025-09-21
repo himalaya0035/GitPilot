@@ -87,6 +87,7 @@ function App() {
                 <WorkflowManager 
                   onLoadWorkflow={handleWorkflowSelected}
                   onClose={() => setShowWorkflowSelector(false)}
+                  showOnlyLoad={true}
                 />
               </div>
             </div>

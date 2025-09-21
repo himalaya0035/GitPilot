@@ -3,7 +3,7 @@ import { useWorkflows } from '../hooks/useWorkflows';
 import { useNotification } from '../contexts/NotificationContext';
 import './WorkflowManager.css';
 
-function WorkflowManager({ onLoadWorkflow, onClose }) {
+function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
   const {
     workflows,
     loading,
@@ -147,22 +147,24 @@ function WorkflowManager({ onLoadWorkflow, onClose }) {
             />
           </div>
 
-          <div className="import-section">
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImportWorkflow}
-              id="import-workflow-file"
-              style={{ display: 'none' }}
-            />
-            <button 
-              type="button"
-              onClick={() => document.getElementById('import-workflow-file').click()}
-              className="import-button"
-            >
-              📁 Import Workflow
-            </button>
-          </div>
+          {!showOnlyLoad && (
+            <div className="import-section">
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImportWorkflow}
+                id="import-workflow-file"
+                style={{ display: 'none' }}
+              />
+              <button 
+                type="button"
+                onClick={() => document.getElementById('import-workflow-file').click()}
+                className="import-button"
+              >
+                📁 Import Workflow
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="workflows-list">
@@ -204,37 +206,41 @@ function WorkflowManager({ onLoadWorkflow, onClose }) {
                   >
                     Load
                   </button>
-                  <button
-                    className="action-button duplicate-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDuplicateDialog(workflow);
-                      setDuplicateName(`${workflow.name} (Copy)`);
-                    }}
-                    title="Duplicate workflow"
-                  >
-                    Copy
-                  </button>
-                  <button
-                    className="action-button export-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleExportWorkflow(workflow);
-                    }}
-                    title="Export workflow"
-                  >
-                    Export
-                  </button>
-                  <button
-                    className="action-button delete-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDeleteConfirm(workflow.id);
-                    }}
-                    title="Delete workflow"
-                  >
-                    Delete
-                  </button>
+                  {!showOnlyLoad && (
+                    <>
+                      <button
+                        className="action-button duplicate-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDuplicateDialog(workflow);
+                          setDuplicateName(`${workflow.name} (Copy)`);
+                        }}
+                        title="Duplicate workflow"
+                      >
+                        Copy
+                      </button>
+                      <button
+                        className="action-button export-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExportWorkflow(workflow);
+                        }}
+                        title="Export workflow"
+                      >
+                        Export
+                      </button>
+                      <button
+                        className="action-button delete-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDeleteConfirm(workflow.id);
+                        }}
+                        title="Delete workflow"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))
