@@ -4,16 +4,25 @@
  */
 
 import WorkflowService from './WorkflowService';
+import ExecutionService from './ExecutionService';
 import LocalStorageAdapter from './storage/LocalStorageAdapter';
+import ApiAdapter from './storage/ApiAdapter';
+
+// Determine which adapter to use based on environment
+const useBackend = process.env.REACT_APP_USE_BACKEND === 'true' || 
+                   process.env.NODE_ENV === 'development';
 
 // Create storage adapter instance
-const storageAdapter = new LocalStorageAdapter('git-workflow-');
+const storageAdapter = useBackend ? new ApiAdapter() : new LocalStorageAdapter('git-workflow-');
 
 // Create workflow service instance
 const workflowService = new WorkflowService(storageAdapter);
 
+// Create execution service instance
+const executionService = new ExecutionService();
+
 // Export services
-export { workflowService, storageAdapter };
+export { workflowService, executionService, storageAdapter };
 
 // Export service factory for future extensibility
 export const createWorkflowService = (adapter) => {
@@ -21,11 +30,12 @@ export const createWorkflowService = (adapter) => {
 };
 
 // Export adapters for future use
-export { LocalStorageAdapter };
+export { LocalStorageAdapter, ApiAdapter };
 
 // Default export
 const services = {
   workflowService,
+  executionService,
   storageAdapter
 };
 

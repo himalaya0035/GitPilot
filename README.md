@@ -1,209 +1,181 @@
-# Git Workflow Visualizer
+# GitPilot
 
-A powerful tool for creating, visualizing, and executing Git workflows with a visual interface.
+A visual Git workflow management and execution platform built with React and Node.js.
 
-## 🎯 Features
+## Features
 
-### ✅ Completed (Frontend)
-- **Branch-Centric Workflow Editor**: Drag-and-drop interface for creating Git workflows with branches as nodes
-- **Branch Types**: Support for production, feature, release, and hotfix branches
-- **Operation Edges**: Git operations (checkout, merge, rebase, push, pull, delete-branch, tag) as edges between branches
-- **Branch Configuration**: Click branches to configure properties (name, remote status, protection)
-- **Operation Configuration**: Click operation edges to configure Git command parameters
-- **Workflow Runner**: Visual execution with real-time status updates
-- **Status Indicators**: Color-coded branches and operations (pending, running, success, failed)
-- **Execution Logs**: Detailed logging with export functionality
-- **Responsive Design**: Works on desktop and mobile devices
+- **Visual Workflow Editor** - Drag-and-drop interface for creating Git workflows
+- **Real-time Execution** - Execute workflows with live progress tracking
+- **Git Operations** - Support for checkout, merge, rebase, push, pull, delete-branch, tag
+- **Dependency Resolution** - Automatic parallel execution of independent operations
+- **Backend API** - RESTful API with Socket.IO for real-time updates
+- **Data Layer Abstraction** - Easy switching between storage backends
 
-### 🚧 In Progress (Backend)
-- Express server setup
-- Git operations execution
-- Workflow execution engine
-- WebSocket for live updates
-- API integration
+## Architecture
 
-## 🏗 Project Structure
+### Frontend (React + React Flow)
+- **WorkflowEditor** - Visual workflow creation and editing
+- **WorkflowRunner** - Real-time workflow execution with progress tracking
+- **WorkflowManager** - Workflow CRUD operations and management
+- **Services** - API integration with backend
 
-```
-git-visualizer/
-├── frontend/                 # React + React Flow application
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── WorkflowEditor.jsx    # Visual workflow creation
-│   │   │   ├── WorkflowRunner.jsx    # Workflow execution UI
-│   │   │   └── NodeConfigModal.jsx   # Node configuration
-│   │   ├── App.js                    # Main application
-│   │   └── index.js                  # Entry point
-│   └── package.json
-├── backend/                  # Node.js + Express server
-│   └── package.json
-└── README.md
+### Backend (Node.js + Express)
+- **REST API** - Workflow CRUD operations
+- **Socket.IO** - Real-time execution updates
+- **Git Service** - Git command execution using child_process
+- **Data Layer** - Abstract storage interface (Memory/LocalStorage adapters)
+
+## Quick Start
+
+### Development Mode
+
+```bash
+# Start both backend and frontend
+./start-dev.sh
 ```
 
-## 🚀 Getting Started
+Or start individually:
 
-### Frontend (Currently Available)
+```bash
+# Backend (Terminal 1)
+cd git-visualizer/backend
+npm install
+npm run dev
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd git-visualizer/frontend
-   ```
+# Frontend (Terminal 2)
+cd git-visualizer/frontend
+npm install
+npm start
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+### Production Mode
 
-3. Start the development server:
-   ```bash
-   npm start
-   ```
+```bash
+# Backend
+cd git-visualizer/backend
+npm install
+npm start
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+# Frontend
+cd git-visualizer/frontend
+npm install
+npm run build
+```
 
-### Backend (Coming Soon)
+## API Endpoints
 
-The backend will provide:
-- REST API for workflow management
-- Git command execution via child_process
-- WebSocket for real-time updates
-- Workflow execution engine with dependency resolution
-
-## 🎨 Workflow Editor Features
-
-### Creating Workflows
-1. **Drag Branches**: Drag branch nodes from the palette to the canvas
-2. **Connect Operations**: Draw edges between branches to define Git operations
-3. **Configure Branches**: Click branches to set properties (name, remote status, protection)
-4. **Configure Operations**: Click operation edges to set Git command parameters
-5. **Save Workflow**: Enter a name and click "Create Workflow"
-
-### Supported Branch Types
-- **Production**: Main production branches (🏭)
-- **Feature**: Feature development branches (🔧)
-- **Release**: Release preparation branches (🚀)
-- **Hotfix**: Critical bug fix branches (🚨)
-
-### Supported Git Operations
-- **Checkout**: Create new branches or switch between branches
-- **Merge**: Merge source branch into target branch
-- **Rebase**: Rebase current branch onto another branch
-- **Push**: Push changes to remote repository (with optional force)
-- **Pull**: Pull changes from remote (with optional rebase)
-- **Delete Branch**: Delete local or remote branches
-- **Tag**: Create and push Git tags
-
-## 🏃‍♂️ Workflow Runner Features
+### Workflows
+- `GET /api/workflows` - Get all workflows
+- `GET /api/workflows/:id` - Get specific workflow
+- `POST /api/workflows` - Create workflow
+- `PUT /api/workflows/:id` - Update workflow
+- `DELETE /api/workflows/:id` - Delete workflow
+- `GET /api/workflows/search?q=query` - Search workflows
+- `GET /api/workflows/stats` - Get statistics
 
 ### Execution
-- **Visual Feedback**: Nodes change color based on status
-- **Parallel Execution**: Independent operations run simultaneously
-- **Dependency Resolution**: Operations wait for their dependencies
-- **Error Handling**: Failed operations don't block independent ones
+- `POST /api/execution/:id/start` - Start workflow execution
+- `GET /api/execution/:id/status` - Get execution status
+- `POST /api/execution/:id/stop` - Stop execution
 
-### Status Indicators
-- **Gray**: Pending (not yet started)
-- **Yellow**: Running (currently executing)
-- **Green**: Success (completed successfully)
-- **Red**: Failed (execution failed)
+### Health
+- `GET /api/health` - Health check
 
-### Logging
-- **Real-time Logs**: See execution progress in real-time
-- **Export Logs**: Download execution logs as text files
-- **Clear Logs**: Reset the log display
+## Socket.IO Events
 
-## 📋 Workflow JSON Schema
+### Client → Server
+- `execution-stopped` - Stop execution
 
-```json
-{
-  "workflowId": "21-sept-release",
-  "name": "CPF Release Workflow",
-  "branches": [
-    {
-      "id": "prod-cpf",
-      "name": "prod-cpf",
-      "type": "production",
-      "isRemote": true,
-      "protection": "strict",
-      "position": { "x": 100, "y": 200 }
-    },
-    {
-      "id": "21-sept-release-cpf",
-      "name": "21-sept-release-cpf",
-      "type": "release",
-      "isRemote": false,
-      "protection": "moderate",
-      "position": { "x": 300, "y": 200 }
-    }
-  ],
-  "operations": [
-    {
-      "id": "op1",
-      "type": "checkout",
-      "source": "prod-cpf",
-      "target": "21-sept-release-cpf",
-      "params": {
-        "new": true,
-        "force": false
-      }
-    },
-    {
-      "id": "op2",
-      "type": "merge",
-      "source": "CR-31820-cpf",
-      "target": "21-sept-release-cpf",
-      "params": {
-        "strategy": "merge",
-        "noFF": false
-      }
-    }
-  ]
-}
-```
+### Server → Client
+- `execution-started` - Execution started
+- `execution-completed` - Execution completed
+- `execution-failed` - Execution failed
+- `operation-started` - Operation started
+- `operation-completed` - Operation completed
+- `operation-failed` - Operation failed
+- `log-entry` - Log entry added
 
-## 🛠 Technology Stack
+## Workflow Schema
+
+### Branch Types
+- `production` - Production branch
+- `feature` - Feature branch
+- `release` - Release branch
+- `hotfix` - Hotfix branch
+- `develop` - Development branch
+- `staging` - Staging branch
+
+### Operation Types
+- `checkout` - Checkout branch (with -b flag support)
+- `merge` - Merge branches (with strategy options)
+- `rebase` - Rebase operations
+- `push` - Push to remote
+- `pull` - Pull from remote
+- `delete-branch` - Delete branch (local/remote)
+- `tag` - Create tags
+
+### Status Values
+- `pending` - Not started
+- `running` - Currently executing
+- `success` - Completed successfully
+- `failed` - Execution failed
+
+## Environment Variables
+
+### Backend
+- `PORT` - Server port (default: 5000)
+- `NODE_ENV` - Environment (development/production)
 
 ### Frontend
-- **React 18**: Modern React with hooks
-- **React Flow**: Graph-based workflow visualization
-- **CSS3**: Custom styling with animations
-- **Axios**: HTTP client for API calls
-- **Socket.IO Client**: Real-time communication
+- `REACT_APP_USE_BACKEND` - Use backend API (default: true in development)
+- `NODE_ENV` - Environment (development/production)
 
-### Backend (Planned)
-- **Node.js**: Runtime environment
-- **Express**: Web framework
-- **Socket.IO**: WebSocket communication
-- **child_process**: Git command execution
+## Development
 
-## 🎯 Example Workflow
+### Backend Structure
+```
+backend/
+├── index.js              # Main server file
+├── data/                 # Data layer
+│   ├── DataLayer.js      # Abstract data interface
+│   └── adapters/         # Storage adapters
+├── middleware/           # Express middleware
+├── routes/              # API routes
+├── services/            # Business logic
+└── test-server.js       # Test utilities
+```
 
-Here's an example of a typical release workflow (matching your reference image):
+### Frontend Structure
+```
+frontend/src/
+├── components/          # React components
+├── services/           # API services
+│   ├── storage/        # Storage adapters
+│   └── ExecutionService.js
+├── hooks/              # React hooks
+└── contexts/           # React contexts
+```
 
-1. **Checkout** from `prod-cpf` to `21-sept-release-cpf`
-2. **Merge** `CR-31820-cpf` into `21-sept-release-cpf`
-3. **Merge** `CR-21720-cpf` into `21-sept-release-cpf`
-4. **Checkout** from `prod-alphaWealth` to `21-sept-release-alpha`
-5. **Merge** `21-sept-release-cpf` into `21-sept-release-alpha`
-6. **Checkout** from `prod-gain` to `21-sept-release-gain`
-7. **Merge** `21-sept-release-cpf` into `21-sept-release-gain`
+## Testing
 
-This workflow shows a branch-centric approach where:
-- **Branches** are the nodes (prod-cpf, 21-sept-release-cpf, etc.)
-- **Operations** are the edges (checkout -b, merge)
-- The flow represents actual Git branch relationships and operations
+```bash
+# Test backend
+cd git-visualizer/backend
+node test-server.js
 
-## 🔄 Next Steps
+# Test API endpoints
+curl http://localhost:5000/api/health
+curl http://localhost:5000/api/workflows
+```
 
-1. **Backend Development**: Implement Express server and Git operations
-2. **API Integration**: Connect frontend to backend APIs
-3. **WebSocket Updates**: Real-time execution status updates
-4. **Testing**: End-to-end testing of workflow creation and execution
-5. **Documentation**: API documentation and user guides
+## Contributing
 
-## 📝 Notes
+1. Follow ESLint Airbnb style guide
+2. Use async/await instead of callbacks
+3. Write modular functions with JSDoc
+4. No hardcoded secrets
+5. Test all changes
 
-- The frontend currently simulates workflow execution for demonstration
-- All workflows are stored in-memory (no database required for POC)
-- The tool assumes it's running within a Git repository context
-- Error handling includes graceful failure recovery and dependency skipping
+## License
+
+MIT License
