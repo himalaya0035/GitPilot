@@ -67,6 +67,7 @@ function App() {
             <WorkflowRunner 
               workflow={workflow} 
               onBackToEditor={handleBackToEditor}
+              onWorkflowChange={handleWorkflowSelected}
             />
           )}
         </main>
