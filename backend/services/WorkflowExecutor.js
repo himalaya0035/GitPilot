@@ -136,7 +136,13 @@ class WorkflowExecutor {
         }
   
         // 2. Merge operation depends on all operations that modify its target branch
-        if (op.type === 'merge' && otherOp.target === op.target) {
+        //    EXCEPT merges that target the same branch independently
+        if (
+          op.type === 'merge' &&
+          otherOp.target === op.target &&
+          // only include merges that are NOT independent
+          otherOp.type === 'checkout'
+        ) {
           if (!dependencies.get(op.id).includes(otherOp.id)) {
             dependencies.get(op.id).push(otherOp.id);
             dependents.get(otherOp.id).push(op.id);
@@ -155,6 +161,7 @@ class WorkflowExecutor {
   
     return { dependencies, dependents };
   }
+  
   
   /**
    * Execute operations with dependency resolution
