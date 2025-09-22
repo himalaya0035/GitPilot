@@ -52,7 +52,7 @@ class WorkflowExecutor {
 
       // Build dependency graph
       const dependencies = this.buildDependencyGraph(workflow.operations);
-
+      console.info(dependencies)
       // Execute operations
       await this.executeOperations(workflow, execution, dependencies);
 
@@ -118,27 +118,44 @@ class WorkflowExecutor {
   buildDependencyGraph(operations) {
     const dependencies = new Map();
     const dependents = new Map();
-
+  
     // Initialize maps
     operations.forEach(op => {
       dependencies.set(op.id, []);
       dependents.set(op.id, []);
     });
-
-    // Build dependency relationships
+  
     operations.forEach(op => {
-      // Find operations that target the source of this operation
       operations.forEach(otherOp => {
-        if (otherOp.target === op.source && otherOp.id !== op.id) {
+        if (op.id === otherOp.id) return;
+  
+        // 1. Any operation that uses a branch created by a checkout depends on that checkout
+        if (otherOp.type === 'checkout' && (op.source === otherOp.target || op.target === otherOp.target)) {
           dependencies.get(op.id).push(otherOp.id);
           dependents.get(otherOp.id).push(op.id);
         }
+  
+        // 2. Merge operation depends on all operations that modify its target branch
+        if (op.type === 'merge' && otherOp.target === op.target) {
+          if (!dependencies.get(op.id).includes(otherOp.id)) {
+            dependencies.get(op.id).push(otherOp.id);
+            dependents.get(otherOp.id).push(op.id);
+          }
+        }
+  
+        // 3. Merge operation depends on all operations that modify its source branch
+        if (op.type === 'merge' && otherOp.target === op.source) {
+          if (!dependencies.get(op.id).includes(otherOp.id)) {
+            dependencies.get(op.id).push(otherOp.id);
+            dependents.get(otherOp.id).push(op.id);
+          }
+        }
       });
     });
-
+  
     return { dependencies, dependents };
   }
-
+  
   /**
    * Execute operations with dependency resolution
    */
