@@ -167,7 +167,7 @@ class WorkflowExecutor {
       }
 
       // Execute ready operations in parallel
-      const promises = readyOperations.map(op => this.executeOperation(op, execution));
+      const promises = readyOperations.map(op => this.executeOperation(op, execution, workflow));
       await Promise.all(promises);
 
       // Update completed and failed sets
@@ -187,48 +187,69 @@ class WorkflowExecutor {
   }
 
   /**
+   * Resolve branch names from branch IDs
+   */
+  resolveBranchNames(operation, workflow) {
+    const branchMap = new Map(workflow.branches.map(branch => [branch.id, branch.name]));
+    const sourceName = branchMap.get(operation.source);
+    const targetName = branchMap.get(operation.target);
+    
+    if (!sourceName) {
+      throw new Error(`Source branch ID '${operation.source}' not found in workflow branches`);
+    }
+    if (!targetName) {
+      throw new Error(`Target branch ID '${operation.target}' not found in workflow branches`);
+    }
+    
+    return { sourceName, targetName };
+  }
+
+  /**
    * Execute a single operation
    */
-  async executeOperation(operation, execution) {
+  async executeOperation(operation, execution, workflow) {
     const operationId = operation.id;
     const operationState = execution.operations.get(operationId);
     
     try {
+      // Resolve branch names from IDs
+      const { sourceName, targetName } = this.resolveBranchNames(operation, workflow);
+      
       // Update operation status to running
       operationState.status = 'running';
       this.emitUpdate(execution.id, 'operation-started', {
         operationId,
         operationType: operation.type,
-        source: operation.source,
-        target: operation.target,
+        source: sourceName,
+        target: targetName,
         status: 'running'
       });
 
-      this.addLog(execution, `Starting ${operation.type} from ${operation.source} to ${operation.target}`, 'info');
+      this.addLog(execution, `Starting ${operation.type} from ${sourceName} to ${targetName}`, 'info');
 
       // Execute the operation based on type
       let result;
       switch (operation.type) {
         case 'checkout':
-          result = await this.gitService.checkout(operation.source, operation.target, operation.params);
+          result = await this.gitService.checkout(sourceName, targetName, operation.params);
           break;
         case 'merge':
-          result = await this.gitService.merge(operation.source, operation.target, operation.params);
+          result = await this.gitService.merge(sourceName, targetName, operation.params);
           break;
         case 'rebase':
-          result = await this.gitService.rebase(operation.source, operation.target, operation.params);
+          result = await this.gitService.rebase(sourceName, targetName, operation.params);
           break;
         case 'push':
-          result = await this.gitService.push(operation.source, operation.target, operation.params);
+          result = await this.gitService.push(sourceName, targetName, operation.params);
           break;
         case 'pull':
-          result = await this.gitService.pull(operation.source, operation.target, operation.params);
+          result = await this.gitService.pull(sourceName, targetName, operation.params);
           break;
         case 'delete-branch':
-          result = await this.gitService.deleteBranch(operation.source, operation.target, operation.params);
+          result = await this.gitService.deleteBranch(sourceName, targetName, operation.params);
           break;
         case 'tag':
-          result = await this.gitService.tag(operation.source, operation.target, operation.params);
+          result = await this.gitService.tag(sourceName, targetName, operation.params);
           break;
         default:
           throw new Error(`Unknown operation type: ${operation.type}`);
@@ -237,7 +258,7 @@ class WorkflowExecutor {
       if (result.success) {
         operationState.status = 'success';
         this.updateBranchStatus(execution, operation.target, 'success');
-        this.addLog(execution, `${operation.type} completed successfully from ${operation.source} to ${operation.target}`, 'success');
+        this.addLog(execution, `${operation.type} completed successfully from ${sourceName} to ${targetName}`, 'success');
         
         this.emitUpdate(execution.id, 'operation-completed', {
           operationId,
@@ -247,7 +268,7 @@ class WorkflowExecutor {
       } else {
         operationState.status = 'failed';
         this.updateBranchStatus(execution, operation.target, 'failed');
-        this.addLog(execution, `${operation.type} failed from ${operation.source} to ${operation.target}: ${result.error}`, 'error');
+        this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'error');
         
         this.emitUpdate(execution.id, 'operation-failed', {
           operationId,
@@ -259,7 +280,7 @@ class WorkflowExecutor {
     } catch (error) {
       operationState.status = 'failed';
       this.updateBranchStatus(execution, operation.target, 'failed');
-      this.addLog(execution, `${operation.type} failed from ${operation.source} to ${operation.target}: ${error.message}`, 'error');
+      this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${error.message}`, 'error');
       
       this.emitUpdate(execution.id, 'operation-failed', {
         operationId,

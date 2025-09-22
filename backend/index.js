@@ -7,13 +7,11 @@ const express = require('express');
 const cors = require('cors');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-const path = require('path');
 
 // Import services
 const workflowRoutes = require('./routes/workflows');
 const executionRoutes = require('./routes/execution');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
-const { validateWorkflow } = require('./middleware/validation');
 
 const app = express();
 const server = createServer(app);
