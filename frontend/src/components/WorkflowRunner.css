@@ -13,7 +13,7 @@
   border-bottom: 1px solid #ddd;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
 }
 
 .workflow-info h2 {
@@ -26,6 +26,301 @@
   margin: 0;
   color: #666;
   font-size: 14px;
+}
+
+.repository-info {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.repository-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.required-indicator {
+  color: #dc2626;
+  font-weight: bold;
+}
+
+.repository-path {
+  color: #374151;
+  font-weight: 600;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.repository-path:contains("NOT SELECTED") {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.change-repository-button {
+  padding: 4px 8px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.change-repository-button:hover {
+  background: #2563eb;
+}
+
+/* Repository Selector Modal */
+.repository-selector-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 480px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 24px 24px 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.close-button {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #64748b;
+  font-size: 18px;
+  font-weight: 300;
+}
+
+.close-button:hover {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.repository-path-input-container {
+  padding: 24px;
+}
+
+.repository-path-text-input {
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  background: #fafbfc;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  margin-bottom: 8px;
+}
+
+.repository-path-text-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.repository-path-text-input::placeholder {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.repository-path-text-input.error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.repository-path-text-input.error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.path-validation-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 0;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+}
+
+.path-validation-error svg {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.clear-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.clear-button:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+  transform: translateY(-1px);
+}
+
+.clear-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.repository-path-input-container label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+.repository-path-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.repository-path-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.repository-path-help {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.repository-path-help svg {
+  color: #0ea5e9;
+  flex-shrink: 0;
+}
+
+.repository-path-help strong {
+  color: #0c4a6e;
+  font-weight: 600;
+}
+
+.repository-path-help {
+  color: #0369a1;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.save-button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.save-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.save-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.cancel-button {
+  padding: 12px 24px;
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-button:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
 }
 
 .runner-controls {

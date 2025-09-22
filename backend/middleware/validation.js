@@ -123,4 +123,27 @@ const validateWorkflowId = (req, res, next) => {
   next();
 };
 
-module.exports = { validateWorkflow, validateWorkflowId };
+/**
+ * Validate repository path parameter
+ */
+const validateRepositoryPath = (req, res, next) => {
+  const { repositoryPath } = req.body;
+  
+  if (repositoryPath && typeof repositoryPath !== 'string') {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'Repository path must be a string' }
+    });
+  }
+
+  if (repositoryPath && repositoryPath.trim() === '') {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'Repository path cannot be empty' }
+    });
+  }
+
+  next();
+};
+
+module.exports = { validateWorkflow, validateWorkflowId, validateRepositoryPath };

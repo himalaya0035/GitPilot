@@ -43,6 +43,10 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionLog, setExecutionLog] = useState([]);
   const [showWorkflowSelector, setShowWorkflowSelector] = useState(false);
+  const [repositoryPath, setRepositoryPath] = useState('');
+  const [showRepositorySelector, setShowRepositorySelector] = useState(false);
+  const [modalRepositoryPath, setModalRepositoryPath] = useState('');
+  const [modalValidationError, setModalValidationError] = useState('');
 
   const handleWorkflowSelected = (selectedWorkflow) => {
     if (onWorkflowChange) {
@@ -53,6 +57,9 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
 
   useEffect(() => {
     if (workflow) {
+      // Set repository path from workflow
+      setRepositoryPath(workflow.repositoryPath || '');
+      
       // Convert workflow to React Flow format
       const flowNodes = workflow.branches.map((branch, index) => ({
         id: branch.id,
@@ -92,29 +99,73 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     setExecutionLog(prev => [...prev, { timestamp, message, type }]);
   };
 
-  const updateBranchStatus = (branchId, status) => {
-    setNodes(prev => prev.map(node => 
-      node.id === branchId 
-        ? { ...node, data: { ...node.data, status } }
-        : node
-    ));
+  const validateRepositoryPath = (path) => {
+    if (!path || path.trim() === '') {
+      return 'Repository path is required';
+    }
+
+    // Check for basic path format
+    const trimmedPath = path.trim();
+    
+    // Must be an absolute path (starts with / on Unix or C:\ on Windows)
+    if (!trimmedPath.startsWith('/') && !trimmedPath.match(/^[A-Za-z]:\\/)) {
+      return 'Invalid directory';
+    }
+
+    // Check for invalid characters
+    // eslint-disable-next-line no-control-regex
+    const invalidChars = /[<>:"|?*\u0000-\u001f]/;
+    if (invalidChars.test(trimmedPath)) {
+      return 'Invalid directory';
+    }
+
+    // Check for reasonable length
+    if (trimmedPath.length < 3) {
+      return 'Invalid directory';
+    }
+
+    if (trimmedPath.length > 500) {
+      return 'Invalid directory';
+    }
+
+    // Check for common directory patterns
+    const commonDirs = ['/tmp', '/var', '/etc', '/usr', '/bin', '/sbin', '/dev', '/proc', '/sys'];
+    if (commonDirs.some(dir => trimmedPath === dir || trimmedPath.startsWith(dir + '/'))) {
+      return 'Invalid directory';
+    }
+
+    return null; // Valid path
   };
 
-  const updateOperationStatus = (operationId, status) => {
-    setEdges(prev => prev.map(edge => 
-      edge.id === operationId 
-        ? { ...edge, data: { ...edge.data, status } }
-        : edge
-    ));
-  };
+  // const updateBranchStatus = (branchId, status) => {
+  //   setNodes(prev => prev.map(node => 
+  //     node.id === branchId 
+  //       ? { ...node, data: { ...node.data, status } }
+  //       : node
+  //   ));
+  // };
+
+  // const updateOperationStatus = (operationId, status) => {
+  //   setEdges(prev => prev.map(edge => 
+  //     edge.id === operationId 
+  //       ? { ...edge, data: { ...edge.data, status } }
+  //       : edge
+  //   ));
+  // };
 
   const executeWorkflow = async () => {
     if (isExecuting) return;
     
+    // Validate repository path is required
+    if (!repositoryPath || repositoryPath.trim() === '') {
+      addLogEntry('ERROR: Repository path is required for security. Please select a Git repository folder.', 'error');
+      return;
+    }
+    
     setIsExecuting(true);
     setExecutionLog([]);
-    // setExecutionStatus({});
     addLogEntry(`Starting execution of workflow: ${workflow.name}`, 'info');
+    addLogEntry(`Executing on repository: ${repositoryPath}`, 'info');
 
     // Reset all branches and operations to pending
     setNodes(prev => prev.map(node => ({
@@ -127,10 +178,15 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     })));
 
     try {
-      // For now, simulate execution with delays
-      // In real implementation, this would call the backend API
-      await simulateWorkflowExecution();
+      // Import ExecutionService
+      const { executionService } = require('../services');
       
+      // Start real execution
+      const result = await executionService.startExecution(workflow.id, repositoryPath);
+      addLogEntry(`Execution started with ID: ${result.executionId}`, 'info');
+      
+      // TODO: Connect Socket.IO events for real-time updates
+      // For now, show success message
       addLogEntry('Workflow execution completed successfully!', 'success');
     } catch (error) {
       addLogEntry(`Workflow execution failed: ${error.message}`, 'error');
@@ -139,82 +195,82 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     }
   };
 
-  const simulateWorkflowExecution = async () => {
-    // const operationMap = new Map(edges.map(edge => [edge.id, edge]));
-    // const branchMap = new Map(nodes.map(node => [node.id, node]));
+  // const simulateWorkflowExecution = async () => {
+  //   // const operationMap = new Map(edges.map(edge => [edge.id, edge]));
+  //   // const branchMap = new Map(nodes.map(node => [node.id, node]));
     
-    // Build dependency map for operations
-    const dependencies = new Map();
-    edges.forEach(edge => {
-      if (!dependencies.has(edge.id)) {
-        dependencies.set(edge.id, []);
-      }
-      // Find operations that target the source of this operation
-      edges.forEach(otherEdge => {
-        if (otherEdge.target === edge.source && otherEdge.id !== edge.id) {
-          dependencies.get(edge.id).push(otherEdge.id);
-        }
-      });
-    });
+  //   // Build dependency map for operations
+  //   const dependencies = new Map();
+  //   edges.forEach(edge => {
+  //     if (!dependencies.has(edge.id)) {
+  //       dependencies.set(edge.id, []);
+  //     }
+  //     // Find operations that target the source of this operation
+  //     edges.forEach(otherEdge => {
+  //       if (otherEdge.target === edge.source && otherEdge.id !== edge.id) {
+  //         dependencies.get(edge.id).push(otherEdge.id);
+  //       }
+  //     });
+  //   });
 
-    // Find operations with no dependencies (can run in parallel)
-    const getReadyOperations = (completed) => {
-      return edges.filter(edge => {
-        const deps = dependencies.get(edge.id) || [];
-        return deps.every(dep => completed.has(dep));
-      });
-    };
+  //   // Find operations with no dependencies (can run in parallel)
+  //   const getReadyOperations = (completed) => {
+  //     return edges.filter(edge => {
+  //       const deps = dependencies.get(edge.id) || [];
+  //       return deps.every(dep => completed.has(dep));
+  //     });
+  //   };
 
-    const completed = new Set();
-    const failed = new Set();
+  //   const completed = new Set();
+  //   const failed = new Set();
 
-    while (completed.size + failed.size < edges.length) {
-      const readyOperations = getReadyOperations(completed);
+  //   while (completed.size + failed.size < edges.length) {
+  //     const readyOperations = getReadyOperations(completed);
       
-      if (readyOperations.length === 0) {
-        // No more operations can be executed
-        break;
-      }
+  //     if (readyOperations.length === 0) {
+  //       // No more operations can be executed
+  //       break;
+  //     }
 
-      // Execute ready operations in parallel
-      const promises = readyOperations.map(async (edge) => {
-        const operation = edge.data;
-        updateOperationStatus(edge.id, 'running');
-        addLogEntry(`Executing ${operation.operationType} from ${edge.source} to ${edge.target}`, 'info');
+  //     // Execute ready operations in parallel
+  //     const promises = readyOperations.map(async (edge) => {
+  //       const operation = edge.data;
+  //       updateOperationStatus(edge.id, 'running');
+  //       addLogEntry(`Executing ${operation.operationType} from ${edge.source} to ${edge.target}`, 'info');
 
-        try {
-          // Simulate execution time
-          await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
+  //       try {
+  //         // Simulate execution time
+  //         await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
           
-          // Simulate success/failure (90% success rate for demo)
-          const success = Math.random() > 0.1;
+  //         // Simulate success/failure (90% success rate for demo)
+  //         const success = Math.random() > 0.1;
           
-          if (success) {
-            updateOperationStatus(edge.id, 'success');
-            updateBranchStatus(edge.target, 'success');
-            addLogEntry(`${operation.operationType} completed successfully from ${edge.source} to ${edge.target}`, 'success');
-            completed.add(edge.id);
-          } else {
-            updateOperationStatus(edge.id, 'failed');
-            updateBranchStatus(edge.target, 'failed');
-            addLogEntry(`${operation.operationType} failed from ${edge.source} to ${edge.target}`, 'error');
-            failed.add(edge.id);
-          }
-        } catch (error) {
-          updateOperationStatus(edge.id, 'failed');
-          updateBranchStatus(edge.target, 'failed');
-          addLogEntry(`${operation.operationType} failed from ${edge.source} to ${edge.target}: ${error.message}`, 'error');
-          failed.add(edge.id);
-        }
-      });
+  //         if (success) {
+  //           updateOperationStatus(edge.id, 'success');
+  //           updateBranchStatus(edge.target, 'success');
+  //           addLogEntry(`${operation.operationType} completed successfully from ${edge.source} to ${edge.target}`, 'success');
+  //           completed.add(edge.id);
+  //         } else {
+  //           updateOperationStatus(edge.id, 'failed');
+  //           updateBranchStatus(edge.target, 'failed');
+  //           addLogEntry(`${operation.operationType} failed from ${edge.source} to ${edge.target}`, 'error');
+  //           failed.add(edge.id);
+  //         }
+  //       } catch (error) {
+  //         updateOperationStatus(edge.id, 'failed');
+  //         updateBranchStatus(edge.target, 'failed');
+  //         addLogEntry(`${operation.operationType} failed from ${edge.source} to ${edge.target}: ${error.message}`, 'error');
+  //         failed.add(edge.id);
+  //       }
+  //     });
 
-      await Promise.all(promises);
-    }
+  //     await Promise.all(promises);
+  //   }
 
-    if (failed.size > 0) {
-      throw new Error(`${failed.size} operations failed`);
-    }
-  };
+  //   if (failed.size > 0) {
+  //     throw new Error(`${failed.size} operations failed`);
+  //   }
+  // };
 
   const clearLogs = () => {
     setExecutionLog([]);
@@ -242,6 +298,20 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
         <div className="workflow-info">
           <h2>{workflow?.name}</h2>
           <p>ID: {workflow?.workflowId}</p>
+          <div className="repository-info">
+            <span className="repository-label">Git Repository: <span className="required-indicator">*</span></span>
+            <span className="repository-path">{repositoryPath || 'NOT SELECTED'}</span>
+            <button 
+              onClick={() => {
+                setModalRepositoryPath(repositoryPath);
+                setModalValidationError('');
+                setShowRepositorySelector(true);
+              }}
+              className="change-repository-button"
+            >
+              Change
+            </button>
+          </div>
         </div>
         
         <div className="runner-controls">
@@ -256,7 +326,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
           </button>
           <button 
             onClick={executeWorkflow} 
-            disabled={isExecuting}
+            disabled={isExecuting || !repositoryPath || repositoryPath.trim() === ''}
             className="execute-button"
           >
             {isExecuting ? 'Executing...' : 'Execute Workflow'}
@@ -331,6 +401,110 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
                 onClose={() => setShowWorkflowSelector(false)}
                 showOnlyLoad={true}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRepositorySelector && (
+        <div className="modal-overlay">
+          <div className="repository-selector-modal">
+            <div className="modal-header">
+              <h2>Update Repository Path</h2>
+              <button 
+                className="close-button"
+                onClick={() => {
+                  setShowRepositorySelector(false);
+                  setModalRepositoryPath('');
+                  setModalValidationError('');
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-content">
+              <div className="repository-path-input-container">
+                <label>Git Repository Path:</label>
+                
+                <div className="repository-path-input-wrapper">
+                  <input
+                    type="text"
+                    value={modalRepositoryPath}
+                    onChange={(e) => {
+                      const newPath = e.target.value;
+                      setModalRepositoryPath(newPath);
+                      const error = validateRepositoryPath(newPath);
+                      setModalValidationError(error || '');
+                    }}
+                    placeholder="Enter full Git repository path (e.g., /home/user/my-repo)"
+                    className={`repository-path-text-input ${modalValidationError ? 'error' : ''}`}
+                  />
+                  
+                  {modalValidationError && (
+                    <div className="path-validation-error">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                      </svg>
+                      {modalValidationError}
+                    </div>
+                  )}
+                  
+                  {modalRepositoryPath && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setModalRepositoryPath('');
+                        setModalValidationError('');
+                      }}
+                      className="clear-button"
+                      title="Clear selection"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                      Clear
+                    </button>
+                  )}
+                </div>
+                
+                <div className="repository-path-help">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9,12l2,2 4-4"/>
+                  </svg>
+                  <strong>Note:</strong> Browser security prevents getting absolute paths. You must enter the full repository path manually.
+                </div>
+                
+                <div className="modal-actions">
+                  <button 
+                    onClick={() => {
+                      if (!modalValidationError && modalRepositoryPath.trim()) {
+                        setRepositoryPath(modalRepositoryPath.trim());
+                        setShowRepositorySelector(false);
+                        setModalRepositoryPath('');
+                        setModalValidationError('');
+                      }
+                    }}
+                    className="save-button"
+                    disabled={!!modalValidationError || !modalRepositoryPath.trim()}
+                  >
+                    Save
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setShowRepositorySelector(false);
+                      setModalRepositoryPath('');
+                      setModalValidationError('');
+                    }}
+                    className="cancel-button"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

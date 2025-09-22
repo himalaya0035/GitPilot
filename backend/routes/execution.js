@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { validateWorkflowId } = require('../middleware/validation');
+const { validateWorkflowId, validateRepositoryPath } = require('../middleware/validation');
 const GitService = require('../services/GitService');
 const WorkflowExecutor = require('../services/WorkflowExecutor');
 
@@ -13,9 +13,10 @@ const WorkflowExecutor = require('../services/WorkflowExecutor');
  * POST /api/execution/:id/start
  * Start workflow execution
  */
-router.post('/:id/start', validateWorkflowId, async (req, res, next) => {
+router.post('/:id/start', validateWorkflowId, validateRepositoryPath, async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { repositoryPath } = req.body; // Optional repository path
     const io = req.app.get('io');
     
     // Get workflow from shared data layer
@@ -29,8 +30,26 @@ router.post('/:id/start', validateWorkflowId, async (req, res, next) => {
       });
     }
 
-    // Initialize services
-    const gitService = new GitService();
+    // SECURITY: Prevent execution on GitPilot repository
+    const gitPilotRepoPath = process.cwd();
+    const targetRepoPath = repositoryPath || gitPilotRepoPath;
+    
+    // Check if trying to execute on GitPilot repository
+    if (targetRepoPath === gitPilotRepoPath || 
+        targetRepoPath.startsWith(gitPilotRepoPath + '/') ||
+        gitPilotRepoPath.startsWith(targetRepoPath + '/')) {
+      return res.status(403).json({
+        success: false,
+        error: { 
+          message: 'Execution on GitPilot repository is not allowed for security reasons',
+          gitPilotPath: gitPilotRepoPath,
+          requestedPath: targetRepoPath
+        }
+      });
+    }
+
+    // Initialize services with validated repository path
+    const gitService = new GitService(targetRepoPath);
     const executor = new WorkflowExecutor(gitService, io);
 
     // Start execution in background
@@ -42,6 +61,7 @@ router.post('/:id/start', validateWorkflowId, async (req, res, next) => {
       data: {
         executionId,
         workflowId: id,
+        repositoryPath: repositoryPath || gitService.workingDirectory,
         status: 'started',
         message: 'Workflow execution started'
       }

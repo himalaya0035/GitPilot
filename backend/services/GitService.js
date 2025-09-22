@@ -13,6 +13,25 @@ const execAsync = promisify(exec);
 class GitService {
   constructor(workingDirectory = process.cwd()) {
     this.workingDirectory = workingDirectory;
+    this.gitPilotRepoPath = process.cwd();
+    
+    // SECURITY: Prevent execution on GitPilot repository
+    this.validateRepositoryPath();
+  }
+
+  /**
+   * Validate that we're not executing on GitPilot repository
+   */
+  validateRepositoryPath() {
+    const gitPilotRepoPath = this.gitPilotRepoPath;
+    const targetPath = this.workingDirectory;
+    
+    // Check if trying to execute on GitPilot repository
+    if (targetPath === gitPilotRepoPath || 
+        targetPath.startsWith(gitPilotRepoPath + '/') ||
+        gitPilotRepoPath.startsWith(targetPath + '/')) {
+      throw new Error(`SECURITY VIOLATION: Cannot execute Git operations on GitPilot repository (${gitPilotRepoPath}). This would cause catastrophic damage to the application.`);
+    }
   }
 
   /**

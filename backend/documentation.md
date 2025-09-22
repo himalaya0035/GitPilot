@@ -199,9 +199,11 @@ class WorkflowExecutor {
 
 | Method | Endpoint | Description | Request Body | Response |
 |--------|----------|-------------|--------------|----------|
-| POST | `/:id/start` | Start execution | - | `{success, data}` |
+| POST | `/:id/start` | Start execution | `{repositoryPath?}` | `{success, data}` |
 | GET | `/:id/status` | Get execution status | - | `{success, data}` |
 | POST | `/:id/stop` | Stop execution | - | `{success, data}` |
+
+**⚠️ Security Note**: Execution on GitPilot repository is **BLOCKED** for safety.
 
 ### Health Check
 | Method | Endpoint | Description | Response |
@@ -609,15 +611,40 @@ async newDataOperation(params) {
 
 ## 🔒 Security Considerations
 
+### Critical Security Features
+
+#### **GitPilot Repository Protection**
+- **BLOCKED**: Execution on GitPilot repository is **completely blocked**
+- **Double Protection**: Both API route and GitService validate paths
+- **Catastrophic Prevention**: Prevents accidental damage to the application
+
+```javascript
+// Security checks in place:
+1. API Route Validation: Checks if target path is GitPilot repo
+2. GitService Validation: Constructor validates repository path
+3. Path Comparison: Multiple path comparison methods
+4. Error Response: Clear security violation messages
+```
+
+#### **Repository Path Validation**
+```javascript
+// Blocked scenarios:
+- Exact match: /path/to/gitpilot
+- Subdirectory: /path/to/gitpilot/subdir  
+- Parent directory: /path/to/gitpilot/../other-repo
+```
+
 ### Input Validation
 - **Request Validation**: All inputs validated before processing
 - **Git Command Sanitization**: Commands constructed safely
 - **File Path Validation**: Working directory restrictions
+- **Repository Path Security**: GitPilot repository protection
 
 ### Error Information
 - **Stack Traces**: Only exposed in development mode
 - **Sensitive Data**: Git credentials not logged
 - **Error Messages**: User-friendly messages without internal details
+- **Security Violations**: Clear messages about blocked operations
 
 ---
 

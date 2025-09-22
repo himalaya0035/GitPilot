@@ -99,13 +99,16 @@ class ExecutionService {
   /**
    * Start workflow execution
    */
-  async startExecution(workflowId) {
+  async startExecution(workflowId, repositoryPath = null) {
     try {
+      const requestBody = repositoryPath ? { repositoryPath } : {};
+      
       const response = await fetch(`${this.baseUrl}/api/execution/${workflowId}/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       const result = await response.json();
