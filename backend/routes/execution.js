@@ -18,11 +18,8 @@ router.post('/:id/start', validateWorkflowId, async (req, res, next) => {
     const { id } = req.params;
     const io = req.app.get('io');
     
-    // Get workflow from data layer
-    const DataLayer = require('../data/DataLayer');
-    const MemoryAdapter = require('../data/adapters/MemoryAdapter');
-    const memoryAdapter = new MemoryAdapter('git-workflow-');
-    const dataLayer = new DataLayer(memoryAdapter);
+    // Get workflow from shared data layer
+    const dataLayer = require('../data/sharedDataLayer');
     
     const workflow = await dataLayer.getWorkflow(id);
     if (!workflow) {

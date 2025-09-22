@@ -5,13 +5,10 @@
 
 const express = require('express');
 const router = express.Router();
-const DataLayer = require('../data/DataLayer');
-const MemoryAdapter = require('../data/adapters/MemoryAdapter');
 const { validateWorkflow, validateWorkflowId } = require('../middleware/validation');
 
-// Initialize data layer with memory adapter
-const memoryAdapter = new MemoryAdapter('git-workflow-');
-const dataLayer = new DataLayer(memoryAdapter);
+// Use shared data layer instance
+const dataLayer = require('../data/sharedDataLayer');
 
 /**
  * GET /api/workflows
