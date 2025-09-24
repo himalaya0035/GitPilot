@@ -17,10 +17,14 @@ class WorkflowService {
   async loadWorkflows() {
     try {
       const workflows = await this.storage.getAll();
+      
       this.workflows.clear();
       workflows.forEach(workflow => {
-        this.workflows.set(workflow.id, workflow);
+        // Use _id if id is not available (MongoDB compatibility)
+        const workflowId = workflow.id || workflow._id;
+        this.workflows.set(workflowId, workflow);
       });
+      
       return Array.from(this.workflows.values());
     } catch (error) {
       console.error('Failed to load workflows:', error);

@@ -62,7 +62,7 @@ class DataLayer {
   }
 
   /**
-   * Delete a workflow
+   * Delete a workflow (hard delete - permanent removal)
    */
   async deleteWorkflow(id) {
     const workflow = await this.adapter.get(id);
