@@ -164,15 +164,16 @@ class WorkflowExecutor {
   
   
   /**
-   * Execute operations with dependency resolution
+   * Execute operations with dependency resolution using sequential queue
    */
   async executeOperations(workflow, execution, { dependencies, dependents }) {
     const completed = new Set();
     const failed = new Set();
+    const operationQueue = [...workflow.operations]; // Create a queue of all operations
 
     while (completed.size + failed.size < workflow.operations.length) {
       // Find operations that can be executed (no pending dependencies)
-      const readyOperations = workflow.operations.filter(op => {
+      const readyOperations = operationQueue.filter(op => {
         const deps = dependencies.get(op.id) || [];
         return !completed.has(op.id) && 
                !failed.has(op.id) && 
@@ -181,7 +182,7 @@ class WorkflowExecutor {
 
       if (readyOperations.length === 0) {
         // No more operations can be executed
-        const remaining = workflow.operations.filter(op => 
+        const remaining = operationQueue.filter(op => 
           !completed.has(op.id) && !failed.has(op.id)
         );
         if (remaining.length > 0) {
@@ -190,19 +191,23 @@ class WorkflowExecutor {
         break;
       }
 
-      // Execute ready operations in parallel
-      const promises = readyOperations.map(op => this.executeOperation(op, execution, workflow));
-      await Promise.all(promises);
-
-      // Update completed and failed sets
-      readyOperations.forEach(op => {
-        const opState = execution.operations.get(op.id);
+      // Execute ready operations sequentially (one by one)
+      console.log(`🔄 Executing ${readyOperations.length} ready operations sequentially...`);
+      
+      for (const operation of readyOperations) {
+        console.log(`⚡ Executing operation: ${operation.id} (${operation.type})`);
+        await this.executeOperation(operation, execution, workflow);
+        
+        // Update completed and failed sets immediately after each operation
+        const opState = execution.operations.get(operation.id);
         if (opState.status === 'success') {
-          completed.add(op.id);
+          completed.add(operation.id);
+          console.log(`✅ Operation ${operation.id} completed successfully`);
         } else if (opState.status === 'failed') {
-          failed.add(op.id);
+          failed.add(operation.id);
+          console.log(`❌ Operation ${operation.id} failed`);
         }
-      });
+      }
     }
 
     if (failed.size > 0) {
