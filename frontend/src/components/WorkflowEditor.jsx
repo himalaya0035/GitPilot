@@ -212,7 +212,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
     try {
       setIsSaving(true);
       const workflow = {
-        workflowId: sanitizeWorkflowName(workflowName),
+        id: sanitizeWorkflowName(workflowName),
         name: workflowName.trim(),
         branches: nodes.map((node) => ({
           id: node.id,
@@ -301,7 +301,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
     }
 
     const workflow = {
-      workflowId: sanitizeWorkflowName(workflowName),
+      id: sanitizeWorkflowName(workflowName),
       name: workflowName.trim(),
       branches: nodes.map((node) => ({
         id: node.id,
@@ -324,7 +324,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
     const dataStr = JSON.stringify(workflow, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = `${workflow.workflowId}.json`;
+    const exportFileDefaultName = `${workflow.id}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);

@@ -41,9 +41,9 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
     onClose();
   };
 
-  const handleDeleteWorkflow = async (workflowId) => {
+  const handleDeleteWorkflow = async (id) => {
     try {
-      await deleteWorkflow(workflowId);
+      await deleteWorkflow(id);
       setShowDeleteConfirm(null);
       setSelectedWorkflow(null);
     } catch (err) {

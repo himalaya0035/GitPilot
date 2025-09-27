@@ -20,8 +20,8 @@ class WorkflowService {
       
       this.workflows.clear();
       workflows.forEach(workflow => {
-        // Use _id if id is not available (MongoDB compatibility)
-        const workflowId = workflow.id || workflow._id;
+        // Use workflow.id as the unique identifier
+        const workflowId = workflow.id;
         this.workflows.set(workflowId, workflow);
       });
       

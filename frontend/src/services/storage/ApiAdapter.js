@@ -29,7 +29,7 @@ class ApiAdapter {
   }
 
   /**
-   * Get a specific workflow by ID
+   * Get a specific workflow by id
    */
   async get(id) {
     try {

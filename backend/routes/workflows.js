@@ -29,7 +29,7 @@ router.get('/', async (req, res, next) => {
 
 /**
  * GET /api/workflows/:id
- * Get a specific workflow by ID
+ * Get a specific workflow by id
  */
 router.get('/:id', validateWorkflowId, async (req, res, next) => {
   try {

@@ -60,11 +60,7 @@ const operationSchema = new mongoose.Schema({
 }, { _id: false });
 
 const workflowSchema = new mongoose.Schema({
-  _id: {
-    type: String,
-    required: true
-  },
-  workflowId: {
+  id: {
     type: String,
     required: true,
     unique: true
@@ -124,7 +120,7 @@ const workflowSchema = new mongoose.Schema({
 
 // Indexes for better query performance
 workflowSchema.index({ name: 'text' });
-workflowSchema.index({ workflowId: 1 });
+workflowSchema.index({ id: 1 }, { unique: true });
 workflowSchema.index({ 'branches.type': 1 });
 workflowSchema.index({ createdAt: -1 });
 workflowSchema.index({ isActive: 1 });
@@ -135,18 +131,5 @@ workflowSchema.pre('save', function(next) {
   next();
 });
 
-// Virtual for getting workflow ID (since we use _id as the primary identifier)
-workflowSchema.virtual('id').get(function() {
-  return this._id;
-});
-
-// Ensure virtual fields are serialized
-workflowSchema.set('toJSON', {
-  virtuals: true,
-  transform: function(doc, ret) {
-    delete ret.__v;
-    return ret;
-  }
-});
 
 module.exports = mongoose.model('Workflow', workflowSchema);

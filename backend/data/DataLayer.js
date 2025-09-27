@@ -52,7 +52,7 @@ class DataLayer {
     const updatedWorkflow = {
       ...existingWorkflow,
       ...updates,
-      id, // Ensure ID doesn't change
+      id, // Ensure id doesn't change
       updatedAt: new Date().toISOString(),
       version: (existingWorkflow.version || 1) + 1
     };

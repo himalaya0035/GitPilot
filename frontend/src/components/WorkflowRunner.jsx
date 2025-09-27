@@ -285,7 +285,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `workflow-execution-${workflow.workflowId}-${Date.now()}.log`;
+    a.download = `workflow-execution-${workflow.id}-${Date.now()}.log`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -297,7 +297,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
       <div className="runner-header">
         <div className="workflow-info">
           <h2>{workflow?.name}</h2>
-          <p>ID: {workflow?.workflowId}</p>
+          <p>ID: {workflow?.id}</p>
           <div className="repository-info">
             <span className="repository-label">Git Repository: <span className="required-indicator">*</span></span>
             <span className="repository-path">{repositoryPath || 'NOT SELECTED'}</span>

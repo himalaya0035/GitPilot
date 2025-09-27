@@ -76,19 +76,13 @@ class MongoAdapter {
   }
 
   /**
-   * Get a specific workflow by ID
+   * Get a specific workflow by id
    */
   async get(id) {
     await this.ensureConnection();
     
     try {
-      // Try to find by _id first, then by id field
-      let workflow = await Workflow.findOne({ _id: id, isActive: true });
-      
-      if (!workflow) {
-        workflow = await Workflow.findOne({ id: id, isActive: true });
-      }
-      
+      const workflow = await Workflow.findOne({ id: id, isActive: true });
       return workflow ? workflow.toJSON() : null;
     } catch (error) {
       console.error(`Error fetching workflow ${id}:`, error);
@@ -111,13 +105,13 @@ class MongoAdapter {
     await this.ensureConnection();
     
     try {
-      // Use the workflow's ID (could be _id or id field)
-      const workflowId = workflow._id || workflow.id;
+      // Use the workflow's id
+      const id = workflow.id;
       
       // Use replaceOne with upsert to handle both insert and update
       const result = await Workflow.replaceOne(
-        { _id: workflowId },
-        { ...workflow, _id: workflowId, isActive: true },
+        { id: id },
+        { ...workflow, id: id, isActive: true },
         { upsert: true }
       );
       
@@ -135,13 +129,7 @@ class MongoAdapter {
     await this.ensureConnection();
     
     try {
-      // Try to delete by _id first, then by id field
-      let result = await Workflow.deleteOne({ _id: id });
-      
-      if (result.deletedCount === 0) {
-        result = await Workflow.deleteOne({ id: id });
-      }
-      
+      const result = await Workflow.deleteOne({ id: id });
       return result.deletedCount > 0;
     } catch (error) {
       console.error(`Error deleting workflow ${id}:`, error);
