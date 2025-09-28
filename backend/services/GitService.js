@@ -70,16 +70,57 @@ class GitService {
    * Checkout operation
    */
   async checkout(source, target, params = {}) {
-    const { new: isNew = false, force = false } = params;
+    const { new: isNew = false, force = false, reset = false } = params;
     
-    let command = 'git checkout';
-    if (isNew) {
-      command += ' -b';
+    // Validate target branch
+    if (!target || target.trim() === '') {
+      return {
+        success: false,
+        error: 'Target branch is required for checkout operations',
+        stdout: '',
+        stderr: 'fatal: target branch not specified',
+        command: 'git checkout'
+      };
     }
-    if (force) {
-      command += ' -f';
+    
+    let command;
+    const forceFlag = force ? ' -f' : '';
+    
+    if (isNew || reset) {
+      // BRANCH CREATION CHECKOUT
+      // Source branch is mandatory for branch creation
+      if (!source || source.trim() === '') {
+        return {
+          success: false,
+          error: 'Source branch is required for branch creation',
+          stdout: '',
+          stderr: 'fatal: source branch not specified for branch creation',
+          command: 'git checkout -b'
+        };
+      }
+      
+      // Check if source branch exists
+      const sourceExists = await this.checkBranchExists(source);
+      if (!sourceExists) {
+        return {
+          success: false,
+          error: `Source branch '${source}' does not exist`,
+          stdout: '',
+          stderr: `fatal: branch '${source}' not found`,
+          command: `git checkout -b`
+        };
+      }
+      
+      // Create new branch from source
+      const branchFlag = reset ? '-B' : '-b';
+      command = `git checkout${forceFlag} ${branchFlag} ${target} ${source}`;
+      
+    } else {
+      // NORMAL CHECKOUT
+      // Source branch should NOT be used in normal checkout
+      // Just checkout the target branch
+      command = `git checkout${forceFlag} ${target}`;
     }
-    command += ` ${target}`;
 
     return await this.executeGitCommand(command);
   }
@@ -88,23 +129,61 @@ class GitService {
    * Merge operation
    */
   async merge(source, target, params = {}) {
-    const { strategy = 'merge', noFF = false } = params;
+    const { strategy = 'standard', ffOption = 'auto' } = params;
     
+    // Validate source and target branches
+    if (!source || source.trim() === '') {
+      return {
+        success: false,
+        error: 'Source branch is required for merge operations',
+        stdout: '',
+        stderr: 'fatal: source branch not specified',
+        command: 'git merge'
+      };
+    }
+    
+    if (!target || target.trim() === '') {
+      return {
+        success: false,
+        error: 'Target branch is required for merge operations',
+        stdout: '',
+        stderr: 'fatal: target branch not specified',
+        command: 'git merge'
+      };
+    }
+
+    // Check if source branch exists
+    const sourceExists = await this.checkBranchExists(source);
+    if (!sourceExists) {
+      return {
+        success: false,
+        error: `Source branch '${source}' does not exist`,
+        stdout: '',
+        stderr: `fatal: branch '${source}' not found`,
+        command: `git merge`
+      };
+    }
+
     // First checkout target branch
-    const checkoutResult = await this.checkout(null, target);
+    const checkoutResult = await this.checkout(source, target);
     if (!checkoutResult.success) {
       return checkoutResult;
     }
 
     let command = 'git merge';
+    
+    // Apply strategy flags
     if (strategy === 'squash') {
       command += ' --squash';
-    } else if (strategy === 'no-ff') {
-      command += ' --no-ff';
+    } else if (strategy === 'standard') {
+      if (ffOption === 'no-ff') {
+        command += ' --no-ff';
+      } else if (ffOption === 'ff-only') {
+        command += ' --ff-only';
+      }
+      // 'auto' doesn't add any flags
     }
-    if (noFF) {
-      command += ' --no-ff';
-    }
+    
     command += ` ${source}`;
 
     return await this.executeGitCommand(command);
@@ -138,16 +217,58 @@ class GitService {
    * Push operation
    */
   async push(source, target, params = {}) {
-    const { force = false, upstream = false, remote = 'origin' } = params;
+    const { forceType = 'none', upstream = false, remote = 'origin' } = params;
+    
+    // Validate source branch
+    if (!source || source.trim() === '') {
+      return {
+        success: false,
+        error: 'Source branch is required for push operations',
+        stdout: '',
+        stderr: 'fatal: source branch not specified',
+        command: 'git push'
+      };
+    }
+    
+    // Check if source branch exists
+    const sourceExists = await this.checkBranchExists(source);
+    if (!sourceExists) {
+      return {
+        success: false,
+        error: `Source branch '${source}' does not exist`,
+        stdout: '',
+        stderr: `fatal: branch '${source}' not found`,
+        command: `git push ${remote} ${source}`
+      };
+    }
     
     let command = 'git push';
-    if (force) {
+    if (forceType === 'forceWithLease') {
+      command += ' --force-with-lease';
+    } else if (forceType === 'force') {
       command += ' --force';
     }
     if (upstream) {
       command += ' --set-upstream';
     }
-    command += ` ${remote} ${source}`;
+    
+    // Handle target branch if provided
+    if (target && target.trim() !== '') {
+      // Validate target branch exists
+      const targetExists = await this.checkBranchExists(target);
+      if (!targetExists) {
+        return {
+          success: false,
+          error: `Target branch '${target}' does not exist`,
+          stdout: '',
+          stderr: `fatal: branch '${target}' not found`,
+          command: `git push ${remote} ${source}:${target}`
+        };
+      }
+      command += ` ${remote} ${source}:${target}`;
+    } else {
+      command += ` ${remote} ${source}`;
+    }
 
     return await this.executeGitCommand(command);
   }
@@ -241,6 +362,30 @@ class GitService {
   async getBranches() {
     const result = await this.executeGitCommand('git branch -a');
     return result;
+  }
+
+  /**
+   * Check if a branch exists (local or remote)
+   */
+  async checkBranchExists(branchName) {
+    try {
+      // Check if branch exists locally
+      const localResult = await this.executeGitCommand(`git show-ref --verify --quiet refs/heads/${branchName}`);
+      if (localResult.success) {
+        return true;
+      }
+      
+      // Check if branch exists remotely
+      const remoteResult = await this.executeGitCommand(`git show-ref --verify --quiet refs/remotes/origin/${branchName}`);
+      if (remoteResult.success) {
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error(`Error checking if branch exists: ${branchName}`, error);
+      return false;
+    }
   }
 
   /**

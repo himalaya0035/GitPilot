@@ -8,12 +8,18 @@ const operationConfigs = {
     icon: '📋',
     description: 'Create or switch to a branch',
     fields: [
-      { name: 'new', label: 'Create New Branch', type: 'checkbox', default: true },
-      { name: 'force', label: 'Force Checkout', type: 'checkbox', default: false },
+      { name: 'checkoutType', label: 'Checkout Type', type: 'select', options: [
+        { value: 'create', label: 'Create New Branch' },
+        { value: 'switch', label: 'Switch to Existing Branch' },
+        { value: 'reset', label: 'Reset Branch' },
+      ], default: 'create' },
+      { name: 'force', label: 'Force Checkout', type: 'checkbox' },
     ],
     getDynamicDescription: (formData) => {
-      if (formData.new) {
+      if (formData.checkoutType === 'create') {
         return 'Create a new branch and switch to it';
+      } else if (formData.checkoutType === 'reset') {
+        return 'Reset existing branch to source';
       }
       return 'Switch to an existing branch';
     }
@@ -24,12 +30,28 @@ const operationConfigs = {
     description: 'Merge source branch into target branch',
     fields: [
       { name: 'strategy', label: 'Merge Strategy', type: 'select', options: [
-        { value: 'merge', label: 'Standard Merge' },
+        { value: 'standard', label: 'Standard Merge' },
         { value: 'squash', label: 'Squash Merge' },
-        { value: 'fast-forward', label: 'Fast Forward' },
-      ], default: 'merge' },
-      { name: 'noFF', label: 'No Fast Forward', type: 'checkbox', default: false },
-    ]
+      ] },
+      { name: 'ffOption', label: 'Fast Forward Option', type: 'select', options: [
+        { value: 'auto', label: 'Auto (Default)' },
+        { value: 'no-ff', label: 'No Fast Forward' },
+        { value: 'ff-only', label: 'Fast Forward Only' },
+      ], conditional: 'standard' },
+    ],
+    getDynamicDescription: (formData) => {
+      if (formData.strategy === 'squash') {
+        return 'Squash merge - combine commits into one';
+      } else if (formData.strategy === 'standard') {
+        if (formData.ffOption === 'no-ff') {
+          return 'Standard merge - always create merge commit';
+        } else if (formData.ffOption === 'ff-only') {
+          return 'Standard merge - fast-forward only';
+        }
+        return 'Standard merge - auto fast-forward if possible';
+      }
+      return 'Merge source branch into target branch';
+    }
   },
   rebase: {
     title: 'Rebase Operation',
@@ -45,10 +67,26 @@ const operationConfigs = {
     icon: '⬆️',
     description: 'Push branch to remote repository',
     fields: [
-      { name: 'force', label: 'Force Push', type: 'checkbox', default: false },
-      { name: 'upstream', label: 'Set Upstream', type: 'checkbox', default: true },
       { name: 'remote', label: 'Remote Name', type: 'text', placeholder: 'origin', default: 'origin' },
-    ]
+      { name: 'forceType', label: 'Force Option', type: 'select', options: [
+        { value: 'none', label: 'No Force Push' },
+        { value: 'force', label: 'Force Push' },
+        { value: 'forceWithLease', label: 'Force Push with Lease' },
+      ] },
+      { name: 'upstream', label: 'Set Upstream', type: 'checkbox' },
+    ],
+    getDynamicDescription: (formData) => {
+      if (formData.forceType === 'forceWithLease') {
+        return 'Force push with lease - safer than force push';
+      } else if (formData.forceType === 'force') {
+        return 'Force push - overwrite remote branch history';
+      } else if (formData.upstream) {
+        return 'Push and set upstream tracking';
+      } else if (formData.remote && formData.remote !== 'origin') {
+        return `Push to ${formData.remote} remote`;
+      }
+      return 'Push branch to remote repository';
+    }
   },
   pull: {
     title: 'Pull Operation',
@@ -91,17 +129,42 @@ function OperationConfigModal({ edge, onSave, onCancel, onDelete }) {
     const initialData = {};
     if (config) {
       config.fields.forEach(field => {
-        initialData[field.name] = edge.data.params?.[field.name] || field.default || (field.type === 'checkbox' ? false : '');
+        if (field.name === 'checkoutType' && operationType === 'checkout') {
+          // Determine checkoutType from existing parameters
+          const params = edge.data.params || {};
+          if (params.new) {
+            initialData[field.name] = 'create';
+          } else if (params.reset) {
+            initialData[field.name] = 'reset';
+          } else if (params.new === false && params.reset === false) {
+            // This is a switch operation
+            initialData[field.name] = 'switch';
+          } else {
+            // No existing parameters, use default
+            initialData[field.name] = field.default || 'create';
+          }
+        } else {
+          initialData[field.name] = edge.data.params?.[field.name] || field.default || (field.type === 'checkbox' ? false : '');
+        }
       });
     }
     setFormData(initialData);
   }, [edge, config, operationType]);
 
   const handleInputChange = (fieldName, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [fieldName]: value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [fieldName]: value
+      };
+      
+      // Clear ffOption when switching to squash
+      if (fieldName === 'strategy' && value === 'squash') {
+        delete newData.ffOption;
+      }
+      
+      return newData;
+    });
   };
 
   const handleOperationTypeChange = (newType) => {
@@ -117,15 +180,44 @@ function OperationConfigModal({ edge, onSave, onCancel, onDelete }) {
     setFormData(newData);
   };
 
+  const transformFormDataForBackend = (formData, operationType) => {
+    if (operationType === 'checkout') {
+      // Map new UI structure to backend parameters
+      const backendParams = {
+        force: formData.force || false
+      };
+      
+      if (formData.checkoutType === 'create') {
+        backendParams.new = true;
+        backendParams.reset = false;
+      } else if (formData.checkoutType === 'reset') {
+        backendParams.new = false;
+        backendParams.reset = true;
+      } else {
+        // For 'switch' type, ensure new and reset are false
+        backendParams.new = false;
+        backendParams.reset = false;
+      }
+      
+      return backendParams;
+    }
+    
+    // For other operations, return formData as-is
+    return formData;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (config.fields.some(field => field.required && !formData[field.name])) {
       showWarning('Please fill in all required fields');
       return;
     }
+    
+    const backendParams = transformFormDataForBackend(formData, operationType);
+    
     onSave({
       operationType,
-      params: formData
+      params: backendParams
     });
   };
 
@@ -206,21 +298,33 @@ function OperationConfigModal({ edge, onSave, onCancel, onDelete }) {
               </select>
             </div>
 
-            {config && config.fields.map((field) => (
-              <div key={field.name} className="form-group">
-                {field.type === 'checkbox' ? (
-                  renderField(field)
-                ) : (
-                  <>
-                    <label htmlFor={field.name}>
-                      {field.label}
-                      {field.required && <span className="required">*</span>}
-                    </label>
-                    {renderField(field)}
-                  </>
-                )}
-              </div>
-            ))}
+            {config && config.fields.map((field) => {
+              // Handle conditional logic for different operation types
+              let shouldShow = true;
+              if (field.conditional) {
+                if (operationType === 'merge') {
+                  shouldShow = formData.strategy === field.conditional;
+                }
+                // Checkout no longer has conditional fields
+              }
+              if (!shouldShow) return null;
+              
+              return (
+                <div key={field.name} className="form-group">
+                  {field.type === 'checkbox' ? (
+                    renderField(field)
+                  ) : (
+                    <>
+                      <label htmlFor={field.name}>
+                        {field.label}
+                        {field.required && <span className="required">*</span>}
+                      </label>
+                      {renderField(field)}
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div className="modal-actions">

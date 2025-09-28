@@ -805,16 +805,86 @@ function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
   const getOperationDisplay = (operationType, params = {}) => {
     switch (operationType) {
       case 'checkout':
+        let checkoutText = 'checkout';
+        let checkoutColor = '#6b7280';
+        let checkoutBgColor = '#f9fafb';
+        
         if (params.new) {
-          return { text: 'checkout -b', color: '#3b82f6', bgColor: '#eff6ff' };
+          checkoutText = 'checkout -b';
+          checkoutColor = '#3b82f6';
+          checkoutBgColor = '#eff6ff';
+          
+          if (params.reset) {
+            checkoutText = 'checkout -B';
+          }
+        } else if (params.reset) {
+          // Only reset flag without new
+          checkoutText = 'checkout -B';
+          checkoutColor = '#3b82f6';
+          checkoutBgColor = '#eff6ff';
         }
-        return { text: 'checkout', color: '#6b7280', bgColor: '#f9fafb' };
+        
+        if (params.force) {
+          if (checkoutText === 'checkout') {
+            checkoutText = 'checkout -f';
+          } else if (checkoutText.includes('-b')) {
+            checkoutText = checkoutText.replace('-b', '-f -b');
+          } else if (checkoutText.includes('-B')) {
+            checkoutText = checkoutText.replace('-B', '-f -B');
+          }
+        }
+        
+        return { text: checkoutText, color: checkoutColor, bgColor: checkoutBgColor };
       case 'merge':
-        return { text: 'merge', color: '#10b981', bgColor: '#ecfdf5' };
+        let mergeText = 'merge';
+        let mergeColor = '#10b981';
+        let mergeBgColor = '#ecfdf5';
+        
+        if (params.strategy === 'squash') {
+          mergeText = 'merge --squash';
+        } else if (params.strategy === 'standard') {
+          if (params.ffOption === 'no-ff') {
+            mergeText = 'merge --no-ff';
+          } else if (params.ffOption === 'ff-only') {
+            mergeText = 'merge --ff-only';
+          }
+          // 'auto' shows just 'merge'
+        }
+        
+        return { text: mergeText, color: mergeColor, bgColor: mergeBgColor };
       case 'rebase':
         return { text: 'rebase', color: '#f59e0b', bgColor: '#fffbeb' };
       case 'push':
-        return { text: 'push', color: '#8b5cf6', bgColor: '#f3e8ff' };
+        let pushText = 'push';
+        let pushColor = '#8b5cf6';
+        let pushBgColor = '#f3e8ff';
+        
+        // Build command parts
+        const parts = [];
+        
+        // Add upstream flag first if needed
+        if (params.upstream) {
+          parts.push('-u');
+        }
+        
+        // Add force options
+        if (params.forceType === 'forceWithLease') {
+          parts.push('--force-with-lease');
+        } else if (params.forceType === 'force') {
+          parts.push('--force');
+        }
+        
+        // Add remote name
+        if (params.remote) {
+          parts.push(params.remote);
+        }
+        
+        // Build final command
+        if (parts.length > 0) {
+          pushText = `push ${parts.join(' ')}`;
+        }
+        
+        return { text: pushText, color: pushColor, bgColor: pushBgColor };
       case 'pull':
         return { text: 'pull', color: '#06b6d4', bgColor: '#ecfeff' };
       case 'delete-branch':
@@ -836,7 +906,7 @@ function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
         style={{ 
           stroke: selected ? '#667eea' : '#d1d5db', 
           strokeWidth: selected ? 3 : 2,
-          strokeDasharray: data.operationType === 'checkout' && data.params?.new ? '5,5' : 'none'
+          strokeDasharray: data.operationType === 'checkout' && (data.params?.new || data.params?.reset) ? '5,5' : 'none'
         }} 
       />
       <EdgeLabelRenderer>
