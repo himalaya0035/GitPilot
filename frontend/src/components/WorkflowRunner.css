@@ -131,20 +131,21 @@
 }
 
 .repository-path-input-container {
-  padding: 24px;
+  padding: 20px 24px 24px 24px;
 }
 
 .repository-path-text-input {
   width: 100%;
-  padding: 16px 20px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 15px;
-  transition: all 0.3s ease;
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.15s ease;
   box-sizing: border-box;
-  background: #fafbfc;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  background: #ffffff;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
   margin-bottom: 8px;
+  color: #1f2937;
 }
 
 .repository-path-text-input:focus {
@@ -196,11 +197,11 @@
   gap: 6px;
   padding: 8px 16px;
   background: #f8fafc;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   font-size: 13px;
   font-weight: 500;
   margin-top: 0;
@@ -208,9 +209,9 @@
 }
 
 .clear-button:hover {
-  background: #fee2e2;
-  color: #dc2626;
-  border-color: #fecaca;
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
   transform: translateY(-1px);
 }
 
@@ -754,4 +755,135 @@
   .runner-controls {
     justify-content: center;
   }
+}
+
+/* Saved Repositories Styles */
+.saved-repositories-section {
+  margin-bottom: 0px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 20px;
+}
+
+.saved-repositories-section h3 {
+  margin: 0 0 14px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: -0.025em;
+}
+
+.saved-repositories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
+/* Custom scrollbar for saved repositories */
+.saved-repositories-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.saved-repositories-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.saved-repositories-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.saved-repositories-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Firefox scrollbar */
+.saved-repositories-list {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.saved-repository-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fafbfc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.saved-repository-item:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.repository-info {
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.saved-repository-path {
+  font-size: 12px;
+  color: #1f2937;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
+  line-height: 1.3;
+  white-space: normal;
+  word-break: break-all;
+  background: #ffffff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.path-prefix {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.path-highlight {
+  color: #1f2937;
+  font-weight: 600;
+  background: #dbeafe;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid #3b82f6;
+}
+
+.remove-repository-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.remove-repository-button:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.remove-repository-button:active {
+  transform: scale(0.95);
 }

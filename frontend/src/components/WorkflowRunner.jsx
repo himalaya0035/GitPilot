@@ -47,6 +47,58 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   const [showRepositorySelector, setShowRepositorySelector] = useState(false);
   const [modalRepositoryPath, setModalRepositoryPath] = useState('');
   const [modalValidationError, setModalValidationError] = useState('');
+  const [savedRepositories, setSavedRepositories] = useState([]);
+
+  // Load saved repositories from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('gitPilotSavedRepositories');
+    if (saved) {
+      try {
+        setSavedRepositories(JSON.parse(saved));
+      } catch (error) {
+        console.error('Error loading saved repositories:', error);
+        setSavedRepositories([]);
+      }
+    }
+  }, []);
+
+  // Save repositories to localStorage
+  const saveRepositoryToStorage = (repoPath) => {
+    const repoName = repoPath.split('/').pop() || 'Unknown Repository';
+    const newRepo = {
+      id: Date.now().toString(),
+      name: repoName,
+      path: repoPath,
+      lastUsed: new Date().toISOString()
+    };
+
+    setSavedRepositories(prev => {
+      // Remove if already exists
+      const filtered = prev.filter(repo => repo.path !== repoPath);
+      // Add new repo at the beginning
+      const updated = [newRepo, ...filtered];
+      // Keep only last 5
+      const limited = updated.slice(0, 5);
+      
+      localStorage.setItem('gitPilotSavedRepositories', JSON.stringify(limited));
+      return limited;
+    });
+  };
+
+  // Remove repository from saved list
+  const removeSavedRepository = (repoId) => {
+    setSavedRepositories(prev => {
+      const updated = prev.filter(repo => repo.id !== repoId);
+      localStorage.setItem('gitPilotSavedRepositories', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Select a saved repository
+  const selectSavedRepository = (repoPath) => {
+    setModalRepositoryPath(repoPath);
+    setModalValidationError('');
+  };
 
   const handleWorkflowSelected = (selectedWorkflow) => {
     if (onWorkflowChange) {
@@ -423,8 +475,46 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
               </button>
             </div>
             <div className="modal-content">
+              {/* Saved Repositories Section */}
+              {savedRepositories.length > 0 && (
+                <div className="saved-repositories-section">
+                  <h3>Recently Used Repositories</h3>
+                  <div className="saved-repositories-list">
+                    {savedRepositories.map((repo) => (
+                      <div key={repo.id} className="saved-repository-item">
+                        <div className="repository-info" onClick={() => selectSavedRepository(repo.path)}>
+                          <div className="saved-repository-path">
+                            {(() => {
+                              const pathParts = repo.path.split('/');
+                              const repoName = pathParts[pathParts.length - 1];
+                              const parentPath = pathParts.slice(0, -1).join('/');
+                              return (
+                                <>
+                                  <span className="path-prefix">{parentPath}/</span>
+                                  <span className="path-highlight">{repoName}</span>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                        <button 
+                          className="remove-repository-button"
+                          onClick={() => removeSavedRepository(repo.id)}
+                          title="Remove from saved repositories"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <div className="repository-path-input-container">
-                <label>Git Repository Path:</label>
+                <label>Git Repository Path</label>
                 
                 <div className="repository-path-input-wrapper">
                   <input
@@ -482,7 +572,9 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
                   <button 
                     onClick={() => {
                       if (!modalValidationError && modalRepositoryPath.trim()) {
-                        setRepositoryPath(modalRepositoryPath.trim());
+                        const trimmedPath = modalRepositoryPath.trim();
+                        setRepositoryPath(trimmedPath);
+                        saveRepositoryToStorage(trimmedPath);
                         setShowRepositorySelector(false);
                         setModalRepositoryPath('');
                         setModalValidationError('');
