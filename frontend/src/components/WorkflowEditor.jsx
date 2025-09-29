@@ -72,6 +72,12 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const [selectedEdges, setSelectedEdges] = useState(new Set());
   const [clipboard, setClipboard] = useState({ nodes: [], edges: [] });
   const [isMultiSelecting, setIsMultiSelecting] = useState(false);
+  
+  // Selection box state
+  const [selectionBox, setSelectionBox] = useState(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState(null);
+  const [justFinishedSelection, setJustFinishedSelection] = useState(false);
 
   // Workflow management
   const { saveWorkflow, updateWorkflow } = useWorkflows();
@@ -247,7 +253,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
         }
         return newSelection;
       });
-      setSelectedEdges(new Set());
+      // Don't clear edges when selecting nodes with Ctrl
       setSelectedBranch(null);
       setSelectedEdge(null);
     } else {
@@ -272,7 +278,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
         }
         return newSelection;
       });
-      setSelectedNodes(new Set());
+      // Don't clear nodes when selecting edges with Ctrl
       setSelectedBranch(null);
       setSelectedEdge(null);
     } else {
@@ -285,14 +291,201 @@ function WorkflowEditor({ onWorkflowCreated }) {
     }
   }, []);
 
-  const onPaneClick = useCallback(() => {
-    setSelectedBranch(null);
-    setSelectedEdge(null);
-    setShowBranchConfig(false);
-    setShowOperationConfig(false);
-    setSelectedNodes(new Set());
-    setSelectedEdges(new Set());
-  }, []);
+  const onPaneClick = useCallback((event) => {
+    // Only clear selection if not starting a selection box and not just finished a selection
+    if (!isSelecting && !justFinishedSelection) {
+      setSelectedBranch(null);
+      setSelectedEdge(null);
+      setShowBranchConfig(false);
+      setShowOperationConfig(false);
+      setSelectedNodes(new Set());
+      setSelectedEdges(new Set());
+    }
+  }, [isSelecting, justFinishedSelection]);
+
+  // Selection box mouse handlers
+  const onPaneMouseDown = useCallback((event) => {
+    // Only start selection if clicking on empty pane (not on nodes/edges)
+    // Check if the target is the pane or background, not a node/edge
+    const isPaneClick = event.target.classList.contains('react-flow__pane') || 
+                       event.target.classList.contains('react-flow__background') ||
+                       event.target.classList.contains('react-flow__minimap') ||
+                       event.target.classList.contains('react-flow__controls');
+    
+    if (isPaneClick && reactFlowInstance) {
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+      
+      setSelectionStart(position);
+      setIsSelecting(true);
+      setSelectionBox({
+        x: position.x,
+        y: position.y,
+        width: 0,
+        height: 0,
+      });
+    }
+  }, [reactFlowInstance]);
+
+  const onPaneMouseMove = useCallback((event) => {
+    if (isSelecting && selectionStart && reactFlowInstance) {
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+      
+      const newSelectionBox = {
+        x: Math.min(selectionStart.x, position.x),
+        y: Math.min(selectionStart.y, position.y),
+        width: Math.abs(position.x - selectionStart.x),
+        height: Math.abs(position.y - selectionStart.y),
+      };
+      
+      setSelectionBox(newSelectionBox);
+    }
+  }, [isSelecting, selectionStart, reactFlowInstance]);
+
+  const onPaneMouseUp = useCallback(() => {
+    if (isSelecting && selectionBox && selectionBox.width > 5 && selectionBox.height > 5) {
+      // Find nodes and edges within selection box
+      const selectedNodeIds = new Set();
+      const selectedEdgeIds = new Set();
+      
+      // Check nodes
+      nodes.forEach(node => {
+        const nodeElement = document.querySelector(`[data-id="${node.id}"]`);
+        if (nodeElement) {
+          const nodeRect = nodeElement.getBoundingClientRect();
+          const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+          const nodePosition = {
+            x: nodeRect.left - reactFlowBounds.left,
+            y: nodeRect.top - reactFlowBounds.top,
+            width: nodeRect.width,
+            height: nodeRect.height,
+          };
+          
+          // Check if node intersects with selection box
+          if (nodePosition.x < selectionBox.x + selectionBox.width &&
+              nodePosition.x + nodePosition.width > selectionBox.x &&
+              nodePosition.y < selectionBox.y + selectionBox.height &&
+              nodePosition.y + nodePosition.height > selectionBox.y) {
+            selectedNodeIds.add(node.id);
+          }
+        }
+      });
+      
+      // Check edges (simplified - check if both source and target are selected)
+      edges.forEach(edge => {
+        if (selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)) {
+          selectedEdgeIds.add(edge.id);
+        }
+      });
+      
+      setSelectedNodes(selectedNodeIds);
+      setSelectedEdges(selectedEdgeIds);
+      setSelectedBranch(null);
+      setSelectedEdge(null);
+    }
+    
+    setIsSelecting(false);
+    setSelectionStart(null);
+    setSelectionBox(null);
+  }, [isSelecting, selectionBox, nodes, edges]);
+
+  // Add global mouse event listeners for selection box
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      if (isSelecting && selectionStart && reactFlowInstance) {
+        const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+        const position = reactFlowInstance.project({
+          x: event.clientX - reactFlowBounds.left,
+          y: event.clientY - reactFlowBounds.top,
+        });
+        
+        const newSelectionBox = {
+          x: Math.min(selectionStart.x, position.x),
+          y: Math.min(selectionStart.y, position.y),
+          width: Math.abs(position.x - selectionStart.x),
+          height: Math.abs(position.y - selectionStart.y),
+        };
+        
+        setSelectionBox(newSelectionBox);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isSelecting && selectionBox && selectionBox.width > 5 && selectionBox.height > 5) {
+        // Find nodes and edges within selection box
+        const selectedNodeIds = new Set();
+        const selectedEdgeIds = new Set();
+        
+        // Check nodes using their actual DOM positions
+        nodes.forEach(node => {
+          const nodeElement = document.querySelector(`[data-id="${node.id}"]`);
+          
+          if (nodeElement) {
+            const nodeRect = nodeElement.getBoundingClientRect();
+            const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+            
+            // Convert DOM coordinates to React Flow coordinates
+            const nodeX = nodeRect.left - reactFlowBounds.left;
+            const nodeY = nodeRect.top - reactFlowBounds.top;
+            const nodeWidth = nodeRect.width;
+            const nodeHeight = nodeRect.height;
+            
+            // Check if node intersects with selection box
+            const intersects = nodeX < selectionBox.x + selectionBox.width &&
+                             nodeX + nodeWidth > selectionBox.x &&
+                             nodeY < selectionBox.y + selectionBox.height &&
+                             nodeY + nodeHeight > selectionBox.y;
+            
+            if (intersects) {
+              selectedNodeIds.add(node.id);
+            }
+          }
+        });
+        
+        // Check edges (simplified - check if both source and target are selected)
+        edges.forEach(edge => {
+          if (selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)) {
+            selectedEdgeIds.add(edge.id);
+          }
+        });
+        
+        // Update the selection state
+        setSelectedNodes(selectedNodeIds);
+        setSelectedEdges(selectedEdgeIds);
+        setSelectedBranch(null);
+        setSelectedEdge(null);
+        
+        // Set flag to prevent pane click from clearing selection
+        setJustFinishedSelection(true);
+        
+        // Clear the flag after a short delay to allow normal pane clicks
+        setTimeout(() => {
+          setJustFinishedSelection(false);
+        }, 200);
+      }
+      
+      setIsSelecting(false);
+      setSelectionStart(null);
+      setSelectionBox(null);
+    };
+
+    if (isSelecting) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isSelecting, selectionStart, selectionBox, nodes, edges, reactFlowInstance]);
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -779,7 +972,11 @@ function WorkflowEditor({ onWorkflowCreated }) {
 
       </div>
 
-      <div className="reactflow-wrapper" ref={reactFlowWrapper}>
+      <div 
+        className="reactflow-wrapper" 
+        ref={reactFlowWrapper}
+        onMouseDown={onPaneMouseDown}
+      >
         <ReactFlowProvider>
           <ReactFlow
             nodes={nodes.map(node => ({
@@ -815,10 +1012,22 @@ function WorkflowEditor({ onWorkflowCreated }) {
             }}
             multiSelectionKeyCode={null}
             deleteKeyCode={null}
+            selectionOnDrag={false}
+            nodesDraggable={true}
+            nodesConnectable={true}
+            elementsSelectable={false}
           >
             <Controls />
             <MiniMap />
             <Background variant="dots" gap={12} size={1} />
+            {selectionBox && (
+              <SelectionBox
+                x={selectionBox.x}
+                y={selectionBox.y}
+                width={selectionBox.width}
+                height={selectionBox.height}
+              />
+            )}
           </ReactFlow>
         </ReactFlowProvider>
       </div>
@@ -1169,6 +1378,26 @@ function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
         </div>
       </EdgeLabelRenderer>
     </>
+  );
+}
+
+// Selection Box Component
+function SelectionBox({ x, y, width, height }) {
+  return (
+    <div
+      className="selection-box"
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        width: width,
+        height: height,
+        border: '2px dashed #3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        pointerEvents: 'none',
+        zIndex: 1000,
+      }}
+    />
   );
 }
 

@@ -349,6 +349,43 @@
   font-size: 10px;
 }
 
+/* Selection Box */
+.selection-box {
+  position: absolute;
+  border: 2px dashed #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
+  pointer-events: none;
+  z-index: 1000;
+  border-radius: 4px;
+  animation: selectionPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes selectionPulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Selected Node Styles */
+.react-flow__node.selected {
+  box-shadow: 0 0 0 3px #3b82f6 !important;
+  border: 2px solid #3b82f6 !important;
+}
+
+.react-flow__node.selected .branch-node {
+  box-shadow: 0 0 0 3px #3b82f6 !important;
+  border: 2px solid #3b82f6 !important;
+}
+
+/* Selected Edge Styles */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #3b82f6 !important;
+  stroke-width: 3px !important;
+}
+
 /* Menu Bar - Legacy */
 .menu-bar {
   margin-bottom: 16px;
