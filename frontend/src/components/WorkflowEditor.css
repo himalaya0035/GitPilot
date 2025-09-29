@@ -370,13 +370,7 @@
 }
 
 /* Selected Node Styles */
-.react-flow__node.selected {
-  box-shadow: 0 0 0 3px #3b82f6 !important;
-  border: 2px solid #3b82f6 !important;
-}
-
 .react-flow__node.selected .branch-node {
-  box-shadow: 0 0 0 3px #3b82f6 !important;
   border: 2px solid #3b82f6 !important;
 }
 
