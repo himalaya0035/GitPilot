@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   addEdge,
@@ -12,6 +12,7 @@ import ReactFlow, {
   BaseEdge,
   EdgeLabelRenderer,
   getSmoothStepPath,
+  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import BranchConfigModal from './BranchConfigModal';
@@ -65,10 +66,156 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempWorkflowName, setTempWorkflowName] = useState('');
   const [nameValidationError, setNameValidationError] = useState('');
+  
+  // Copy/Paste functionality state
+  const [selectedNodes, setSelectedNodes] = useState(new Set());
+  const [selectedEdges, setSelectedEdges] = useState(new Set());
+  const [clipboard, setClipboard] = useState({ nodes: [], edges: [] });
+  const [isMultiSelecting, setIsMultiSelecting] = useState(false);
+  
+  // Selection box state
+  const [selectionBox, setSelectionBox] = useState(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState(null);
+  const [justFinishedSelection, setJustFinishedSelection] = useState(false);
 
   // Workflow management
   const { saveWorkflow, updateWorkflow } = useWorkflows();
   const { showSuccess, showError, showWarning } = useNotification();
+
+  // Keyboard event handler for copy/paste functionality
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Check if we're in an input field
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const isCtrlOrCmd = event.ctrlKey || event.metaKey;
+      
+      if (isCtrlOrCmd && event.key === 'c') {
+        event.preventDefault();
+        copySelectedElements();
+      } else if (isCtrlOrCmd && event.key === 'v') {
+        event.preventDefault();
+        pasteElements();
+      } else if (isCtrlOrCmd && event.key === 'a') {
+        event.preventDefault();
+        selectAllElements();
+      } else if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        deleteSelectedElements();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNodes, selectedEdges, clipboard, nodes, edges]);
+
+  // Copy selected elements to clipboard
+  const copySelectedElements = useCallback(() => {
+    if (selectedNodes.size === 0 && selectedEdges.size === 0) {
+      showWarning('No elements selected to copy');
+      return;
+    }
+
+    const nodesToCopy = nodes.filter(node => selectedNodes.has(node.id));
+    const edgesToCopy = edges.filter(edge => selectedEdges.has(edge.id));
+    
+    setClipboard({ nodes: nodesToCopy, edges: edgesToCopy });
+    showSuccess(`Copied ${nodesToCopy.length} nodes and ${edgesToCopy.length} edges`);
+  }, [selectedNodes, selectedEdges, nodes, edges, showSuccess, showWarning]);
+
+  // Paste elements from clipboard
+  const pasteElements = useCallback(() => {
+    if (clipboard.nodes.length === 0 && clipboard.edges.length === 0) {
+      showWarning('No elements in clipboard to paste');
+      return;
+    }
+
+    const offset = { x: 50, y: 50 };
+    const nodeIdMap = new Map();
+    
+    // Create new nodes with offset positions and new IDs
+    const newNodes = clipboard.nodes.map(node => {
+      const newNodeId = `${node.data.branchType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      nodeIdMap.set(node.id, newNodeId);
+      
+      return {
+        ...node,
+        id: newNodeId,
+        position: {
+          x: node.position.x + offset.x,
+          y: node.position.y + offset.y,
+        },
+        data: {
+          ...node.data,
+          branchName: `${node.data.branchType}-${Date.now()}`,
+        },
+      };
+    });
+
+    // Create new edges with updated source/target IDs
+    const newEdges = clipboard.edges.map(edge => {
+      const newEdgeId = `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newSource = nodeIdMap.get(edge.source);
+      const newTarget = nodeIdMap.get(edge.target);
+      
+      // Only create edge if both source and target are being copied
+      if (newSource && newTarget) {
+        return {
+          ...edge,
+          id: newEdgeId,
+          source: newSource,
+          target: newTarget,
+        };
+      }
+      return null;
+    }).filter(Boolean);
+
+    // Add new elements to the canvas
+    setNodes(prevNodes => [...prevNodes, ...newNodes]);
+    setEdges(prevEdges => [...prevEdges, ...newEdges]);
+    
+    // Clear selection and update clipboard
+    setSelectedNodes(new Set());
+    setSelectedEdges(new Set());
+    setClipboard({ nodes: [], edges: [] });
+    
+    showSuccess(`Pasted ${newNodes.length} nodes and ${newEdges.length} edges`);
+  }, [clipboard, setNodes, setEdges, showSuccess, showWarning]);
+
+  // Select all elements
+  const selectAllElements = useCallback(() => {
+    const allNodeIds = new Set(nodes.map(node => node.id));
+    const allEdgeIds = new Set(edges.map(edge => edge.id));
+    
+    setSelectedNodes(allNodeIds);
+    setSelectedEdges(allEdgeIds);
+    showSuccess(`Selected ${allNodeIds.size} nodes and ${allEdgeIds.size} edges`);
+  }, [nodes, edges, showSuccess]);
+
+  // Delete selected elements
+  const deleteSelectedElements = useCallback(() => {
+    if (selectedNodes.size === 0 && selectedEdges.size === 0) {
+      showWarning('No elements selected to delete');
+      return;
+    }
+
+    // Remove selected nodes
+    setNodes(prevNodes => prevNodes.filter(node => !selectedNodes.has(node.id)));
+    
+    // Remove selected edges and edges connected to deleted nodes
+    setEdges(prevEdges => prevEdges.filter(edge => 
+      !selectedEdges.has(edge.id) && 
+      !selectedNodes.has(edge.source) && 
+      !selectedNodes.has(edge.target)
+    ));
+    
+    showSuccess(`Deleted ${selectedNodes.size} nodes and ${selectedEdges.size} edges`);
+    setSelectedNodes(new Set());
+    setSelectedEdges(new Set());
+  }, [selectedNodes, selectedEdges, setNodes, setEdges, showSuccess, showWarning]);
 
   const isValidConnection = useCallback((connection) => {
     return true; // Allow all connections for now
@@ -95,24 +242,250 @@ function WorkflowEditor({ onWorkflowCreated }) {
   );
 
   const onNodeClick = useCallback((event, node) => {
-    // Simple branch selection - just open config modal
-    setSelectedBranch(node);
-    setShowBranchConfig(true);
-    setSelectedEdge(null);
+    // Handle multi-selection with Ctrl/Cmd key
+    if (event.ctrlKey || event.metaKey) {
+      setSelectedNodes(prev => {
+        const newSelection = new Set(prev);
+        if (newSelection.has(node.id)) {
+          newSelection.delete(node.id);
+        } else {
+          newSelection.add(node.id);
+        }
+        return newSelection;
+      });
+      // Don't clear edges when selecting nodes with Ctrl
+      setSelectedBranch(null);
+      setSelectedEdge(null);
+    } else {
+      // Single selection - open config modal
+      setSelectedBranch(node);
+      setShowBranchConfig(true);
+      setSelectedEdge(null);
+      setSelectedNodes(new Set([node.id]));
+      setSelectedEdges(new Set());
+    }
   }, []);
 
   const onEdgeClick = useCallback((event, edge) => {
-    setSelectedEdge(edge);
-    setShowOperationConfig(true);
-    setSelectedBranch(null);
+    // Handle multi-selection with Ctrl/Cmd key
+    if (event.ctrlKey || event.metaKey) {
+      setSelectedEdges(prev => {
+        const newSelection = new Set(prev);
+        if (newSelection.has(edge.id)) {
+          newSelection.delete(edge.id);
+        } else {
+          newSelection.add(edge.id);
+        }
+        return newSelection;
+      });
+      // Don't clear nodes when selecting edges with Ctrl
+      setSelectedBranch(null);
+      setSelectedEdge(null);
+    } else {
+      // Single selection - open config modal
+      setSelectedEdge(edge);
+      setShowOperationConfig(true);
+      setSelectedBranch(null);
+      setSelectedEdges(new Set([edge.id]));
+      setSelectedNodes(new Set());
+    }
   }, []);
 
-  const onPaneClick = useCallback(() => {
-    setSelectedBranch(null);
-    setSelectedEdge(null);
-    setShowBranchConfig(false);
-    setShowOperationConfig(false);
-  }, []);
+  const onPaneClick = useCallback((event) => {
+    // Only clear selection if not starting a selection box and not just finished a selection
+    if (!isSelecting && !justFinishedSelection) {
+      setSelectedBranch(null);
+      setSelectedEdge(null);
+      setShowBranchConfig(false);
+      setShowOperationConfig(false);
+      setSelectedNodes(new Set());
+      setSelectedEdges(new Set());
+    }
+  }, [isSelecting, justFinishedSelection]);
+
+  // Selection box mouse handlers
+  const onPaneMouseDown = useCallback((event) => {
+    // Only start selection if clicking on empty pane (not on nodes/edges)
+    // Check if the target is the pane or background, not a node/edge
+    const isPaneClick = event.target.classList.contains('react-flow__pane') || 
+                       event.target.classList.contains('react-flow__background') ||
+                       event.target.classList.contains('react-flow__minimap') ||
+                       event.target.classList.contains('react-flow__controls');
+    
+    if (isPaneClick && reactFlowInstance) {
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+      
+      setSelectionStart(position);
+      setIsSelecting(true);
+      setSelectionBox({
+        x: position.x,
+        y: position.y,
+        width: 0,
+        height: 0,
+      });
+    }
+  }, [reactFlowInstance]);
+
+  const onPaneMouseMove = useCallback((event) => {
+    if (isSelecting && selectionStart && reactFlowInstance) {
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+      
+      const newSelectionBox = {
+        x: Math.min(selectionStart.x, position.x),
+        y: Math.min(selectionStart.y, position.y),
+        width: Math.abs(position.x - selectionStart.x),
+        height: Math.abs(position.y - selectionStart.y),
+      };
+      
+      setSelectionBox(newSelectionBox);
+    }
+  }, [isSelecting, selectionStart, reactFlowInstance]);
+
+  const onPaneMouseUp = useCallback(() => {
+    if (isSelecting && selectionBox && selectionBox.width > 5 && selectionBox.height > 5) {
+      // Find nodes and edges within selection box
+      const selectedNodeIds = new Set();
+      const selectedEdgeIds = new Set();
+      
+      // Check nodes
+      nodes.forEach(node => {
+        const nodeElement = document.querySelector(`[data-id="${node.id}"]`);
+        if (nodeElement) {
+          const nodeRect = nodeElement.getBoundingClientRect();
+          const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+          const nodePosition = {
+            x: nodeRect.left - reactFlowBounds.left,
+            y: nodeRect.top - reactFlowBounds.top,
+            width: nodeRect.width,
+            height: nodeRect.height,
+          };
+          
+          // Check if node intersects with selection box
+          if (nodePosition.x < selectionBox.x + selectionBox.width &&
+              nodePosition.x + nodePosition.width > selectionBox.x &&
+              nodePosition.y < selectionBox.y + selectionBox.height &&
+              nodePosition.y + nodePosition.height > selectionBox.y) {
+            selectedNodeIds.add(node.id);
+          }
+        }
+      });
+      
+      // Check edges (simplified - check if both source and target are selected)
+      edges.forEach(edge => {
+        if (selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)) {
+          selectedEdgeIds.add(edge.id);
+        }
+      });
+      
+      setSelectedNodes(selectedNodeIds);
+      setSelectedEdges(selectedEdgeIds);
+      setSelectedBranch(null);
+      setSelectedEdge(null);
+    }
+    
+    setIsSelecting(false);
+    setSelectionStart(null);
+    setSelectionBox(null);
+  }, [isSelecting, selectionBox, nodes, edges]);
+
+  // Add global mouse event listeners for selection box
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      if (isSelecting && selectionStart && reactFlowInstance) {
+        const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+        const position = reactFlowInstance.project({
+          x: event.clientX - reactFlowBounds.left,
+          y: event.clientY - reactFlowBounds.top,
+        });
+        
+        const newSelectionBox = {
+          x: Math.min(selectionStart.x, position.x),
+          y: Math.min(selectionStart.y, position.y),
+          width: Math.abs(position.x - selectionStart.x),
+          height: Math.abs(position.y - selectionStart.y),
+        };
+        
+        setSelectionBox(newSelectionBox);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isSelecting && selectionBox && selectionBox.width > 5 && selectionBox.height > 5) {
+        // Find nodes and edges within selection box
+        const selectedNodeIds = new Set();
+        const selectedEdgeIds = new Set();
+        
+        // Check nodes using their actual DOM positions
+        nodes.forEach(node => {
+          const nodeElement = document.querySelector(`[data-id="${node.id}"]`);
+          
+          if (nodeElement) {
+            const nodeRect = nodeElement.getBoundingClientRect();
+            const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+            
+            // Convert DOM coordinates to React Flow coordinates
+            const nodeX = nodeRect.left - reactFlowBounds.left;
+            const nodeY = nodeRect.top - reactFlowBounds.top;
+            const nodeWidth = nodeRect.width;
+            const nodeHeight = nodeRect.height;
+            
+            // Check if node intersects with selection box
+            const intersects = nodeX < selectionBox.x + selectionBox.width &&
+                             nodeX + nodeWidth > selectionBox.x &&
+                             nodeY < selectionBox.y + selectionBox.height &&
+                             nodeY + nodeHeight > selectionBox.y;
+            
+            if (intersects) {
+              selectedNodeIds.add(node.id);
+            }
+          }
+        });
+        
+        // Check edges (simplified - check if both source and target are selected)
+        edges.forEach(edge => {
+          if (selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)) {
+            selectedEdgeIds.add(edge.id);
+          }
+        });
+        
+        // Update the selection state
+        setSelectedNodes(selectedNodeIds);
+        setSelectedEdges(selectedEdgeIds);
+        setSelectedBranch(null);
+        setSelectedEdge(null);
+        
+        // Set flag to prevent pane click from clearing selection
+        setJustFinishedSelection(true);
+        
+        // Clear the flag after a short delay to allow normal pane clicks
+        setTimeout(() => {
+          setJustFinishedSelection(false);
+        }, 200);
+      }
+      
+      setIsSelecting(false);
+      setSelectionStart(null);
+      setSelectionBox(null);
+    };
+
+    if (isSelecting) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isSelecting, selectionStart, selectionBox, nodes, edges, reactFlowInstance]);
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -547,13 +920,73 @@ function WorkflowEditor({ onWorkflowCreated }) {
           </div>
         </div>
 
+        {/* Section Divider */}
+        <div className="section-divider"></div>
+        
+        {/* Copy/Paste Controls */}
+        <div className="copy-paste-section">
+          <h4>Selection & Clipboard</h4>
+          <div className="copy-paste-controls">
+            <button 
+              onClick={copySelectedElements}
+              disabled={selectedNodes.size === 0 && selectedEdges.size === 0}
+              className="control-button copy-button"
+              title="Copy selected elements (Ctrl+C)"
+            >
+              📋 Copy
+            </button>
+            <button 
+              onClick={pasteElements}
+              disabled={clipboard.nodes.length === 0 && clipboard.edges.length === 0}
+              className="control-button paste-button"
+              title="Paste elements (Ctrl+V)"
+            >
+              📄 Paste
+            </button>
+            <button 
+              onClick={selectAllElements}
+              disabled={nodes.length === 0 && edges.length === 0}
+              className="control-button select-all-button"
+              title="Select all elements (Ctrl+A)"
+            >
+              🎯 Select All
+            </button>
+            <button 
+              onClick={deleteSelectedElements}
+              disabled={selectedNodes.size === 0 && selectedEdges.size === 0}
+              className="control-button delete-button"
+              title="Delete selected elements (Delete)"
+            >
+              🗑️ Delete
+            </button>
+          </div>
+          <div className="selection-status">
+            <span className="selection-info">
+              Selected: {selectedNodes.size} nodes, {selectedEdges.size} edges
+            </span>
+            <span className="clipboard-info">
+              Clipboard: {clipboard.nodes.length} nodes, {clipboard.edges.length} edges
+            </span>
+          </div>
+        </div>
+
       </div>
 
-      <div className="reactflow-wrapper" ref={reactFlowWrapper}>
+      <div 
+        className="reactflow-wrapper" 
+        ref={reactFlowWrapper}
+        onMouseDown={onPaneMouseDown}
+      >
         <ReactFlowProvider>
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={nodes.map(node => ({
+              ...node,
+              selected: selectedNodes.has(node.id),
+            }))}
+            edges={edges.map(edge => ({
+              ...edge,
+              selected: selectedEdges.has(edge.id),
+            }))}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
@@ -577,10 +1010,24 @@ function WorkflowEditor({ onWorkflowCreated }) {
               labelStyle: { fill: '#28a745', fontWeight: 600 },
               labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
             }}
+            multiSelectionKeyCode={null}
+            deleteKeyCode={null}
+            selectionOnDrag={false}
+            nodesDraggable={true}
+            nodesConnectable={true}
+            elementsSelectable={false}
           >
             <Controls />
             <MiniMap />
             <Background variant="dots" gap={12} size={1} />
+            {selectionBox && (
+              <SelectionBox
+                x={selectionBox.x}
+                y={selectionBox.y}
+                width={selectionBox.width}
+                height={selectionBox.height}
+              />
+            )}
           </ReactFlow>
         </ReactFlowProvider>
       </div>
@@ -931,6 +1378,26 @@ function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
         </div>
       </EdgeLabelRenderer>
     </>
+  );
+}
+
+// Selection Box Component
+function SelectionBox({ x, y, width, height }) {
+  return (
+    <div
+      className="selection-box"
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        width: width,
+        height: height,
+        border: '2px dashed #3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        pointerEvents: 'none',
+        zIndex: 1000,
+      }}
+    />
   );
 }
 
