@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   addEdge,
@@ -12,6 +12,7 @@ import ReactFlow, {
   BaseEdge,
   EdgeLabelRenderer,
   getSmoothStepPath,
+  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import BranchConfigModal from './BranchConfigModal';
@@ -65,10 +66,150 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempWorkflowName, setTempWorkflowName] = useState('');
   const [nameValidationError, setNameValidationError] = useState('');
+  
+  // Copy/Paste functionality state
+  const [selectedNodes, setSelectedNodes] = useState(new Set());
+  const [selectedEdges, setSelectedEdges] = useState(new Set());
+  const [clipboard, setClipboard] = useState({ nodes: [], edges: [] });
+  const [isMultiSelecting, setIsMultiSelecting] = useState(false);
 
   // Workflow management
   const { saveWorkflow, updateWorkflow } = useWorkflows();
   const { showSuccess, showError, showWarning } = useNotification();
+
+  // Keyboard event handler for copy/paste functionality
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Check if we're in an input field
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const isCtrlOrCmd = event.ctrlKey || event.metaKey;
+      
+      if (isCtrlOrCmd && event.key === 'c') {
+        event.preventDefault();
+        copySelectedElements();
+      } else if (isCtrlOrCmd && event.key === 'v') {
+        event.preventDefault();
+        pasteElements();
+      } else if (isCtrlOrCmd && event.key === 'a') {
+        event.preventDefault();
+        selectAllElements();
+      } else if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        deleteSelectedElements();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNodes, selectedEdges, clipboard, nodes, edges]);
+
+  // Copy selected elements to clipboard
+  const copySelectedElements = useCallback(() => {
+    if (selectedNodes.size === 0 && selectedEdges.size === 0) {
+      showWarning('No elements selected to copy');
+      return;
+    }
+
+    const nodesToCopy = nodes.filter(node => selectedNodes.has(node.id));
+    const edgesToCopy = edges.filter(edge => selectedEdges.has(edge.id));
+    
+    setClipboard({ nodes: nodesToCopy, edges: edgesToCopy });
+    showSuccess(`Copied ${nodesToCopy.length} nodes and ${edgesToCopy.length} edges`);
+  }, [selectedNodes, selectedEdges, nodes, edges, showSuccess, showWarning]);
+
+  // Paste elements from clipboard
+  const pasteElements = useCallback(() => {
+    if (clipboard.nodes.length === 0 && clipboard.edges.length === 0) {
+      showWarning('No elements in clipboard to paste');
+      return;
+    }
+
+    const offset = { x: 50, y: 50 };
+    const nodeIdMap = new Map();
+    
+    // Create new nodes with offset positions and new IDs
+    const newNodes = clipboard.nodes.map(node => {
+      const newNodeId = `${node.data.branchType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      nodeIdMap.set(node.id, newNodeId);
+      
+      return {
+        ...node,
+        id: newNodeId,
+        position: {
+          x: node.position.x + offset.x,
+          y: node.position.y + offset.y,
+        },
+        data: {
+          ...node.data,
+          branchName: `${node.data.branchType}-${Date.now()}`,
+        },
+      };
+    });
+
+    // Create new edges with updated source/target IDs
+    const newEdges = clipboard.edges.map(edge => {
+      const newEdgeId = `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newSource = nodeIdMap.get(edge.source);
+      const newTarget = nodeIdMap.get(edge.target);
+      
+      // Only create edge if both source and target are being copied
+      if (newSource && newTarget) {
+        return {
+          ...edge,
+          id: newEdgeId,
+          source: newSource,
+          target: newTarget,
+        };
+      }
+      return null;
+    }).filter(Boolean);
+
+    // Add new elements to the canvas
+    setNodes(prevNodes => [...prevNodes, ...newNodes]);
+    setEdges(prevEdges => [...prevEdges, ...newEdges]);
+    
+    // Clear selection and update clipboard
+    setSelectedNodes(new Set());
+    setSelectedEdges(new Set());
+    setClipboard({ nodes: [], edges: [] });
+    
+    showSuccess(`Pasted ${newNodes.length} nodes and ${newEdges.length} edges`);
+  }, [clipboard, setNodes, setEdges, showSuccess, showWarning]);
+
+  // Select all elements
+  const selectAllElements = useCallback(() => {
+    const allNodeIds = new Set(nodes.map(node => node.id));
+    const allEdgeIds = new Set(edges.map(edge => edge.id));
+    
+    setSelectedNodes(allNodeIds);
+    setSelectedEdges(allEdgeIds);
+    showSuccess(`Selected ${allNodeIds.size} nodes and ${allEdgeIds.size} edges`);
+  }, [nodes, edges, showSuccess]);
+
+  // Delete selected elements
+  const deleteSelectedElements = useCallback(() => {
+    if (selectedNodes.size === 0 && selectedEdges.size === 0) {
+      showWarning('No elements selected to delete');
+      return;
+    }
+
+    // Remove selected nodes
+    setNodes(prevNodes => prevNodes.filter(node => !selectedNodes.has(node.id)));
+    
+    // Remove selected edges and edges connected to deleted nodes
+    setEdges(prevEdges => prevEdges.filter(edge => 
+      !selectedEdges.has(edge.id) && 
+      !selectedNodes.has(edge.source) && 
+      !selectedNodes.has(edge.target)
+    ));
+    
+    showSuccess(`Deleted ${selectedNodes.size} nodes and ${selectedEdges.size} edges`);
+    setSelectedNodes(new Set());
+    setSelectedEdges(new Set());
+  }, [selectedNodes, selectedEdges, setNodes, setEdges, showSuccess, showWarning]);
 
   const isValidConnection = useCallback((connection) => {
     return true; // Allow all connections for now
@@ -95,16 +236,53 @@ function WorkflowEditor({ onWorkflowCreated }) {
   );
 
   const onNodeClick = useCallback((event, node) => {
-    // Simple branch selection - just open config modal
-    setSelectedBranch(node);
-    setShowBranchConfig(true);
-    setSelectedEdge(null);
+    // Handle multi-selection with Ctrl/Cmd key
+    if (event.ctrlKey || event.metaKey) {
+      setSelectedNodes(prev => {
+        const newSelection = new Set(prev);
+        if (newSelection.has(node.id)) {
+          newSelection.delete(node.id);
+        } else {
+          newSelection.add(node.id);
+        }
+        return newSelection;
+      });
+      setSelectedEdges(new Set());
+      setSelectedBranch(null);
+      setSelectedEdge(null);
+    } else {
+      // Single selection - open config modal
+      setSelectedBranch(node);
+      setShowBranchConfig(true);
+      setSelectedEdge(null);
+      setSelectedNodes(new Set([node.id]));
+      setSelectedEdges(new Set());
+    }
   }, []);
 
   const onEdgeClick = useCallback((event, edge) => {
-    setSelectedEdge(edge);
-    setShowOperationConfig(true);
-    setSelectedBranch(null);
+    // Handle multi-selection with Ctrl/Cmd key
+    if (event.ctrlKey || event.metaKey) {
+      setSelectedEdges(prev => {
+        const newSelection = new Set(prev);
+        if (newSelection.has(edge.id)) {
+          newSelection.delete(edge.id);
+        } else {
+          newSelection.add(edge.id);
+        }
+        return newSelection;
+      });
+      setSelectedNodes(new Set());
+      setSelectedBranch(null);
+      setSelectedEdge(null);
+    } else {
+      // Single selection - open config modal
+      setSelectedEdge(edge);
+      setShowOperationConfig(true);
+      setSelectedBranch(null);
+      setSelectedEdges(new Set([edge.id]));
+      setSelectedNodes(new Set());
+    }
   }, []);
 
   const onPaneClick = useCallback(() => {
@@ -112,6 +290,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
     setSelectedEdge(null);
     setShowBranchConfig(false);
     setShowOperationConfig(false);
+    setSelectedNodes(new Set());
+    setSelectedEdges(new Set());
   }, []);
 
   const onDragOver = useCallback((event) => {
@@ -528,6 +708,56 @@ function WorkflowEditor({ onWorkflowCreated }) {
         {/* Section Divider */}
         <div className="section-divider"></div>
         
+        {/* Copy/Paste Controls */}
+        <div className="copy-paste-section">
+          <h4>Selection & Clipboard</h4>
+          <div className="copy-paste-controls">
+            <button 
+              onClick={copySelectedElements}
+              disabled={selectedNodes.size === 0 && selectedEdges.size === 0}
+              className="control-button copy-button"
+              title="Copy selected elements (Ctrl+C)"
+            >
+              📋 Copy
+            </button>
+            <button 
+              onClick={pasteElements}
+              disabled={clipboard.nodes.length === 0 && clipboard.edges.length === 0}
+              className="control-button paste-button"
+              title="Paste elements (Ctrl+V)"
+            >
+              📄 Paste
+            </button>
+            <button 
+              onClick={selectAllElements}
+              disabled={nodes.length === 0 && edges.length === 0}
+              className="control-button select-all-button"
+              title="Select all elements (Ctrl+A)"
+            >
+              🎯 Select All
+            </button>
+            <button 
+              onClick={deleteSelectedElements}
+              disabled={selectedNodes.size === 0 && selectedEdges.size === 0}
+              className="control-button delete-button"
+              title="Delete selected elements (Delete)"
+            >
+              🗑️ Delete
+            </button>
+          </div>
+          <div className="selection-status">
+            <span className="selection-info">
+              Selected: {selectedNodes.size} nodes, {selectedEdges.size} edges
+            </span>
+            <span className="clipboard-info">
+              Clipboard: {clipboard.nodes.length} nodes, {clipboard.edges.length} edges
+            </span>
+          </div>
+        </div>
+
+        {/* Section Divider */}
+        <div className="section-divider"></div>
+        
         {/* Branch Palette */}
         <div className="palette-section">
           <h4>Git Branches</h4>
@@ -552,8 +782,14 @@ function WorkflowEditor({ onWorkflowCreated }) {
       <div className="reactflow-wrapper" ref={reactFlowWrapper}>
         <ReactFlowProvider>
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={nodes.map(node => ({
+              ...node,
+              selected: selectedNodes.has(node.id),
+            }))}
+            edges={edges.map(edge => ({
+              ...edge,
+              selected: selectedEdges.has(edge.id),
+            }))}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
@@ -577,6 +813,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
               labelStyle: { fill: '#28a745', fontWeight: 600 },
               labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
             }}
+            multiSelectionKeyCode={null}
+            deleteKeyCode={null}
           >
             <Controls />
             <MiniMap />
