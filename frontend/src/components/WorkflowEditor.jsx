@@ -901,6 +901,28 @@ function WorkflowEditor({ onWorkflowCreated }) {
         {/* Section Divider */}
         <div className="section-divider"></div>
         
+        {/* Branch Palette */}
+        <div className="palette-section">
+          <h4>Git Branches</h4>
+          <div className="branch-palette">
+            {Object.keys(branchNodeTypes).map((branchType) => (
+              <div
+                key={`branch-${branchType}`}
+                className={`palette-item branch-item ${branchType} ${draggedItem === `branch-${branchType}` ? 'dragging' : ''}`}
+                onDragStart={(event) => onDragStart(event, `branch-${branchType}`)}
+                onDragEnd={onDragEnd}
+                draggable
+              >
+                <div className="branch-icon"></div>
+                <span>{branchType}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Section Divider */}
+        <div className="section-divider"></div>
+        
         {/* Copy/Paste Controls */}
         <div className="copy-paste-section">
           <h4>Selection & Clipboard</h4>
@@ -945,28 +967,6 @@ function WorkflowEditor({ onWorkflowCreated }) {
             <span className="clipboard-info">
               Clipboard: {clipboard.nodes.length} nodes, {clipboard.edges.length} edges
             </span>
-          </div>
-        </div>
-
-        {/* Section Divider */}
-        <div className="section-divider"></div>
-        
-        {/* Branch Palette */}
-        <div className="palette-section">
-          <h4>Git Branches</h4>
-          <div className="branch-palette">
-            {Object.keys(branchNodeTypes).map((branchType) => (
-              <div
-                key={`branch-${branchType}`}
-                className={`palette-item branch-item ${branchType} ${draggedItem === `branch-${branchType}` ? 'dragging' : ''}`}
-                onDragStart={(event) => onDragStart(event, `branch-${branchType}`)}
-                onDragEnd={onDragEnd}
-                draggable
-              >
-                <div className="branch-icon"></div>
-                <span>{branchType}</span>
-              </div>
-            ))}
           </div>
         </div>
 
