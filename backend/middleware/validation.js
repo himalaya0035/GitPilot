@@ -42,7 +42,7 @@ const validateWorkflow = (req, res, next) => {
       }
 
       // Validate branch types (from project rules)
-      const validBranchTypes = ['production', 'feature', 'release', 'hotfix', 'develop', 'staging'];
+      const validBranchTypes = ['production', 'feature', 'release', 'hotfix', 'develop', 'staging', 'integration'];
       if (!validBranchTypes.includes(branch.type)) {
         return res.status(400).json({
           success: false,

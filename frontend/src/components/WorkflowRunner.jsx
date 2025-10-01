@@ -24,6 +24,7 @@ const branchNodeTypes = {
   hotfix: HotfixBranchNode,
   develop: DevelopBranchNode,
   staging: StagingBranchNode,
+  integration: IntegrationBranchNode,
 };
 
 // Operation edge types
@@ -759,6 +760,34 @@ function StagingBranchNode({ data, selected }) {
       <div className="branch-header">
         <div className="branch-type-icon">🧪</div>
         <span className="branch-type">STAGING</span>
+        <span className="status-indicator"></span>
+      </div>
+      <div className="branch-name">{data.name}</div>
+      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
+    </div>
+  );
+}
+
+function IntegrationBranchNode({ data, selected }) {
+  return (
+    <div className={`branch-node integration status-${data.status} ${selected ? 'selected' : ''}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target"
+        style={{ background: '#555', opacity: 1, visibility: 'visible' }}
+        isConnectable={false}
+      />
+      <div className="branch-header">
+        <div className="branch-type-icon">🔗</div>
+        <span className="branch-type">INTEGRATION</span>
         <span className="status-indicator"></span>
       </div>
       <div className="branch-name">{data.name}</div>

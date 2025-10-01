@@ -896,6 +896,18 @@
   color: #17a2b8;
 }
 
+.branch-node.integration {
+  border-color: #343a40;
+}
+
+.branch-node.integration .branch-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.branch-node.integration .branch-type {
+  color: #343a40;
+}
+
 /* Operation Edge Styles */
 .operation-edge {
   position: relative;
