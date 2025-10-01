@@ -39,6 +39,12 @@ const branchTypeConfigs = {
     icon: '🧪',
     description: 'Pre-production testing environment',
     defaultProtection: 'moderate'
+  },
+  integration: {
+    title: 'Integration Branch Configuration',
+    icon: '🔗',
+    description: 'Integration testing and validation branch',
+    defaultProtection: 'moderate'
   }
 };
 
