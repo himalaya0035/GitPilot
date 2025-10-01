@@ -77,6 +77,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const [selectionBox, setSelectionBox] = useState(null);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState(null);
+  const [screenSelectionStart, setScreenSelectionStart] = useState(null);
   const [justFinishedSelection, setJustFinishedSelection] = useState(false);
 
   // Workflow management
@@ -314,16 +315,21 @@ function WorkflowEditor({ onWorkflowCreated }) {
     
     if (isPaneClick && reactFlowInstance) {
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-      const position = reactFlowInstance.project({
+      // Use raw screen coordinates for selection box positioning
+      const screenPosition = {
         x: event.clientX - reactFlowBounds.left,
         y: event.clientY - reactFlowBounds.top,
-      });
+      };
       
-      setSelectionStart(position);
+      // Convert to React Flow coordinates for node detection
+      const reactFlowPosition = reactFlowInstance.project(screenPosition);
+      
+      setSelectionStart(reactFlowPosition);
+      setScreenSelectionStart(screenPosition);
       setIsSelecting(true);
       setSelectionBox({
-        x: position.x,
-        y: position.y,
+        x: screenPosition.x,
+        y: screenPosition.y,
         width: 0,
         height: 0,
       });
@@ -399,18 +405,20 @@ function WorkflowEditor({ onWorkflowCreated }) {
   // Add global mouse event listeners for selection box
   useEffect(() => {
     const handleMouseMove = (event) => {
-      if (isSelecting && selectionStart && reactFlowInstance) {
+      if (isSelecting && screenSelectionStart && reactFlowInstance) {
         const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-        const position = reactFlowInstance.project({
+        // Use raw screen coordinates for selection box positioning
+        const currentScreenPosition = {
           x: event.clientX - reactFlowBounds.left,
           y: event.clientY - reactFlowBounds.top,
-        });
+        };
         
+        // Calculate selection box in screen coordinates for visual display
         const newSelectionBox = {
-          x: Math.min(selectionStart.x, position.x),
-          y: Math.min(selectionStart.y, position.y),
-          width: Math.abs(position.x - selectionStart.x),
-          height: Math.abs(position.y - selectionStart.y),
+          x: Math.min(screenSelectionStart.x, currentScreenPosition.x),
+          y: Math.min(screenSelectionStart.y, currentScreenPosition.y),
+          width: Math.abs(currentScreenPosition.x - screenSelectionStart.x),
+          height: Math.abs(currentScreenPosition.y - screenSelectionStart.y),
         };
         
         setSelectionBox(newSelectionBox);
@@ -473,6 +481,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
       
       setIsSelecting(false);
       setSelectionStart(null);
+      setScreenSelectionStart(null);
       setSelectionBox(null);
     };
 
@@ -485,7 +494,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isSelecting, selectionStart, selectionBox, nodes, edges, reactFlowInstance]);
+  }, [isSelecting, screenSelectionStart, selectionBox, nodes, edges, reactFlowInstance]);
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
