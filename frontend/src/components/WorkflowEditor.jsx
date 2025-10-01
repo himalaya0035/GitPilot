@@ -23,16 +23,7 @@ import { useNotification } from '../contexts/NotificationContext';
 import { sanitizeWorkflowName } from '../utils/validation';
 import './WorkflowEditor.css';
 
-// Branch node types
-const branchNodeTypes = {
-  production: ProductionBranchNode,
-  feature: FeatureBranchNode,
-  release: ReleaseBranchNode,
-  hotfix: HotfixBranchNode,
-  develop: DevelopBranchNode,
-  staging: StagingBranchNode,
-  integration: IntegrationBranchNode,
-};
+// Branch node types will be defined after component definitions
 
 // Operation edge types for configuration
 const operationTypes = {
@@ -1273,6 +1264,17 @@ function IntegrationBranchNode({ data, selected }) {
     </div>
   );
 }
+
+// Branch node types (defined after all components)
+const branchNodeTypes = {
+  production: ProductionBranchNode,
+  feature: FeatureBranchNode,
+  release: ReleaseBranchNode,
+  hotfix: HotfixBranchNode,
+  develop: DevelopBranchNode,
+  staging: StagingBranchNode,
+  integration: IntegrationBranchNode,
+};
 
 // Operation Edge Component
 function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected }) {

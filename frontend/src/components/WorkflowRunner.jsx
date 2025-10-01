@@ -16,16 +16,7 @@ import 'reactflow/dist/style.css';
 import WorkflowManager from './WorkflowManager';
 import './WorkflowRunner.css';
 
-// Branch node types (same as editor)
-const branchNodeTypes = {
-  production: ProductionBranchNode,
-  feature: FeatureBranchNode,
-  release: ReleaseBranchNode,
-  hotfix: HotfixBranchNode,
-  develop: DevelopBranchNode,
-  staging: StagingBranchNode,
-  integration: IntegrationBranchNode,
-};
+// Branch node types will be defined after component definitions
 
 // Operation edge types
 const operationTypes = {
@@ -802,6 +793,17 @@ function IntegrationBranchNode({ data, selected }) {
     </div>
   );
 }
+
+// Branch node types (defined after all components)
+const branchNodeTypes = {
+  production: ProductionBranchNode,
+  feature: FeatureBranchNode,
+  release: ReleaseBranchNode,
+  hotfix: HotfixBranchNode,
+  develop: DevelopBranchNode,
+  staging: StagingBranchNode,
+  integration: IntegrationBranchNode,
+};
 
 // Operation Edge Component with Status
 function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected }) {
