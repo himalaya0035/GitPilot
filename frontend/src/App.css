@@ -347,25 +347,3 @@ main {
   background-color: #6c757d;
   color: white;
 }
-
-.execution-log {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  padding: 15px;
-  margin-top: 20px;
-  max-height: 300px;
-  overflow-y: auto;
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-}
-
-.log-entry {
-  margin-bottom: 5px;
-  padding: 2px 0;
-}
-
-.log-entry.success { color: #28a745; }
-.log-entry.error { color: #dc3545; }
-.log-entry.info { color: #007bff; }
-.log-entry.warning { color: #ffc107; }

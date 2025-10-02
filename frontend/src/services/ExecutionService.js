@@ -25,6 +25,9 @@ class ExecutionService {
       this.socket.disconnect();
     }
 
+    // Clear any existing listeners before creating new connection
+    this.listeners.clear();
+
     this.socket = io(this.baseUrl, {
       transports: ['websocket', 'polling']
     });
@@ -56,6 +59,8 @@ class ExecutionService {
       this.socket = null;
       this.isConnected = false;
     }
+    // Clear all listeners
+    this.listeners.clear();
   }
 
   /**
@@ -97,6 +102,11 @@ class ExecutionService {
     // Log events
     this.socket.on('log-entry', (data) => {
       this.emit('log-entry', data);
+    });
+
+    // Command events
+    this.socket.on('command-before-execution', (data) => {
+      this.emit('command-before-execution', data);
     });
   }
 
@@ -218,6 +228,13 @@ class ExecutionService {
       isConnected: this.isConnected,
       socket: this.socket
     };
+  }
+
+  /**
+   * Clear all event listeners
+   */
+  clearAllListeners() {
+    this.listeners.clear();
   }
 }
 

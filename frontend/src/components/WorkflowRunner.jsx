@@ -66,39 +66,65 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     // Connect to Socket.IO server
     executionService.connect();
     
-    // Set up real-time event listeners
-    executionService.on('execution-started', (data) => {
+    // Define event handlers
+    const handleExecutionStarted = (data) => {
       addLogEntry(`Execution started: ${data.workflowName}`, 'info');
-    });
+    };
 
-    executionService.on('execution-completed', (data) => {
+    const handleExecutionCompleted = (data) => {
       addLogEntry('Workflow execution completed successfully!', 'success');
       setIsExecuting(false);
-    });
+    };
 
-    executionService.on('execution-failed', (data) => {
+    const handleExecutionFailed = (data) => {
       addLogEntry(`Workflow execution failed: ${data.error}`, 'error');
       setIsExecuting(false);
-    });
+    };
 
-    executionService.on('operation-started', (data) => {
+    const handleOperationStarted = (data) => {
+      addLogEntry(``, 'separator');
       addLogEntry(`Starting ${data.operationType} from ${data.source} to ${data.target}`, 'info');
-    });
+    };
 
-    executionService.on('operation-completed', (data) => {
-      addLogEntry(`Operation completed: ${data.operationType}`, 'success');
-    });
+    const handleOperationCompleted = (data) => {
+      const message = `${data.operationType} completed successfully from ${data.source} to ${data.target}`;
+      addLogEntry(message, 'success');
+    };
 
-    executionService.on('operation-failed', (data) => {
-      addLogEntry(`Operation failed: ${data.error}`, 'error');
-    });
+    const handleOperationFailed = (data) => {
+      const message = `${data.operationType} failed from ${data.source} to ${data.target}: ${data.error}`;
+      addLogEntry(message, 'error');
+    };
 
-    executionService.on('log-entry', (data) => {
-      addLogEntry(data.message, data.type);
-    });
+    const handleLogEntry = (data) => {
+      addLogEntry(data.message, data.type, data.command);
+    };
 
-    // Cleanup on unmount
+    const handleCommandBeforeExecution = (data) => {
+      console.log('🔧 Received command-before-execution event:', data);
+      addLogEntry(`Command: ${data.command}`, 'info', data.command);
+    };
+
+    // Set up real-time event listeners
+    executionService.on('execution-started', handleExecutionStarted);
+    executionService.on('execution-completed', handleExecutionCompleted);
+    executionService.on('execution-failed', handleExecutionFailed);
+    executionService.on('operation-started', handleOperationStarted);
+    executionService.on('operation-completed', handleOperationCompleted);
+    executionService.on('operation-failed', handleOperationFailed);
+    executionService.on('log-entry', handleLogEntry);
+    executionService.on('command-before-execution', handleCommandBeforeExecution);
+
+    // Cleanup on unmount - remove all event listeners
     return () => {
+      executionService.off('execution-started', handleExecutionStarted);
+      executionService.off('execution-completed', handleExecutionCompleted);
+      executionService.off('execution-failed', handleExecutionFailed);
+      executionService.off('operation-started', handleOperationStarted);
+      executionService.off('operation-completed', handleOperationCompleted);
+      executionService.off('operation-failed', handleOperationFailed);
+      executionService.off('log-entry', handleLogEntry);
+      executionService.off('command-before-execution', handleCommandBeforeExecution);
       executionService.disconnect();
     };
   }, []);
@@ -187,10 +213,18 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     }
   }, [workflow, setNodes, setEdges]);
 
-  const addLogEntry = (message, type = 'info') => {
+  const addLogEntry = (message, type = 'info', command = null) => {
     const timestamp = new Date().toLocaleTimeString();
-    setExecutionLog(prev => [...prev, { timestamp, message, type }]);
+    setExecutionLog(prev => [...prev, { timestamp, message, type, command }]);
   };
+
+  // Auto-scroll to bottom when new logs are added
+  useEffect(() => {
+    const logContainer = document.querySelector('.execution-log');
+    if (logContainer) {
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+  }, [executionLog]);
 
   const validateRepositoryPath = (path) => {
     if (!path || path.trim() === '') {
@@ -277,7 +311,6 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
       
       // Socket.IO events are already connected in useEffect above
       // Real-time updates will be handled automatically
-      addLogEntry('Workflow execution completed successfully!', 'success');
     } catch (error) {
       addLogEntry(`Workflow execution failed: ${error.message}`, 'error');
     } finally {
@@ -447,7 +480,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
 
         <div className="execution-panel">
           <div className="panel-header">
-            <h3>Execution Log</h3>
+            <h3>Execution Logs</h3>
             <div className="log-controls">
               <button onClick={clearLogs} className="clear-button">
                 Clear
@@ -460,14 +493,30 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
           
           <div className="execution-log">
             {executionLog.length === 0 ? (
-              <div className="no-logs">No execution logs yet</div>
+              <div className="no-logs">
+                <div className="no-logs-icon">📋</div>
+                <div className="no-logs-text">No execution logs yet</div>
+                <div className="no-logs-subtext">Start a workflow execution to see logs here</div>
+              </div>
             ) : (
-              executionLog.map((entry, index) => (
-                <div key={index} className={`log-entry ${entry.type}`}>
-                  <span className="timestamp">[{entry.timestamp}]</span>
-                  <span className="message">{entry.message}</span>
-                </div>
-              ))
+              <div className="log-entries">
+                 {executionLog.map((entry, index) => {
+                   const isSeparator = entry.type === 'separator';
+                   return (
+                     <div key={index} className={`log-entry ${entry.type} ${isSeparator ? 'separator' : ''}`}>
+                       <div className="log-content">
+                         <div className="log-message">{entry.command ? "Command:" : entry.message}</div>
+                         {entry.command && (
+                           <div className="log-command">
+                             <code>{entry.command}</code>
+                           </div>
+                         )}
+                       </div>
+                       <div className="log-time">{entry.timestamp}</div>
+                     </div>
+                   );
+                 })}
+              </div>
             )}
           </div>
         </div>

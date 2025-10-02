@@ -14,9 +14,20 @@ class GitService {
   constructor(workingDirectory = process.cwd()) {
     this.workingDirectory = workingDirectory;
     this.gitPilotRepoPath = process.cwd();
+    this.emitUpdate = null;
+    this.currentExecutionId = null;
     
     // SECURITY: Prevent execution on GitPilot repository
     this.validateRepositoryPath();
+  }
+
+  /**
+   * Set the emit function and execution ID for command emission
+   */
+  setEmitFunction(emitUpdate, executionId) {
+    console.log(`🔧 Setting emit function for execution: ${executionId}`);
+    this.emitUpdate = emitUpdate;
+    this.currentExecutionId = executionId;
   }
 
   /**
@@ -38,10 +49,24 @@ class GitService {
    * Execute a Git command
    */
   async executeGitCommand(command, options = {}) {
-    const { cwd = this.workingDirectory, timeout = 30000 } = options;
+    const { cwd = this.workingDirectory, timeout = 30000, skipEmission = false } = options;
     
     try {
       console.log(`Executing Git command: ${command}`);
+      
+      // Emit command before execution if emit function is set and not skipped
+      if (this.emitUpdate && this.currentExecutionId && !skipEmission) {
+        console.log(`🔧 Emitting command-before-execution: ${command}`);
+        this.emitUpdate(this.currentExecutionId, 'command-before-execution', {
+          command,
+          timestamp: new Date().toISOString()
+        });
+      } else if (skipEmission) {
+        console.log(`🔇 Skipping command emission for internal command: ${command}`);
+      } else {
+        console.log(`❌ Command emission failed - emitUpdate: ${!!this.emitUpdate}, executionId: ${this.currentExecutionId}`);
+      }
+      
       const { stdout, stderr } = await execAsync(command, { 
         cwd, 
         timeout,
@@ -352,7 +377,7 @@ class GitService {
    * Get current branch
    */
   async getCurrentBranch() {
-    const result = await this.executeGitCommand('git branch --show-current');
+    const result = await this.executeGitCommand('git branch --show-current', { skipEmission: true });
     return result;
   }
 
@@ -360,7 +385,7 @@ class GitService {
    * Get branch list
    */
   async getBranches() {
-    const result = await this.executeGitCommand('git branch -a');
+    const result = await this.executeGitCommand('git branch -a', { skipEmission: true });
     return result;
   }
 
@@ -370,13 +395,13 @@ class GitService {
   async checkBranchExists(branchName) {
     try {
       // Check if branch exists locally
-      const localResult = await this.executeGitCommand(`git show-ref --verify --quiet refs/heads/${branchName}`);
+      const localResult = await this.executeGitCommand(`git show-ref --verify --quiet refs/heads/${branchName}`, { skipEmission: true });
       if (localResult.success) {
         return true;
       }
       
       // Check if branch exists remotely
-      const remoteResult = await this.executeGitCommand(`git show-ref --verify --quiet refs/remotes/origin/${branchName}`);
+      const remoteResult = await this.executeGitCommand(`git show-ref --verify --quiet refs/remotes/origin/${branchName}`, { skipEmission: true });
       if (remoteResult.success) {
         return true;
       }
@@ -392,7 +417,7 @@ class GitService {
    * Check if repository is clean
    */
   async isRepositoryClean() {
-    const result = await this.executeGitCommand('git status --porcelain');
+    const result = await this.executeGitCommand('git status --porcelain', { skipEmission: true });
     return {
       ...result,
       isClean: result.success && result.stdout === ''
@@ -403,7 +428,7 @@ class GitService {
    * Validate Git repository
    */
   async validateRepository() {
-    const result = await this.executeGitCommand('git rev-parse --is-inside-work-tree');
+    const result = await this.executeGitCommand('git rev-parse --is-inside-work-tree', { skipEmission: true });
     return {
       ...result,
       isValid: result.success && result.stdout.trim() === 'true'

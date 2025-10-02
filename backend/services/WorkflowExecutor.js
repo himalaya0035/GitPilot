@@ -44,15 +44,14 @@ class WorkflowExecutor {
       this.initializeExecutionState(workflow, execution);
 
       // Emit execution started
-      this.emitUpdate(executionId, 'execution-started', {
-        executionId,
-        workflowName: workflow.name,
-        status: 'running'
-      });
+      // this.emitUpdate(executionId, 'execution-started', {
+      //   executionId,
+      //   workflowName: workflow.name,
+      //   status: 'running'
+      // });
 
       // Build dependency graph
       const dependencies = this.buildDependencyGraph(workflow.operations);
-      console.info(dependencies)
       // Execute operations
       await this.executeOperations(workflow, execution, dependencies);
 
@@ -251,6 +250,9 @@ class WorkflowExecutor {
       // Resolve branch names from IDs
       const { sourceName, targetName } = this.resolveBranchNames(operation, workflow);
       
+      // Set emit function on GitService for command emission
+      this.gitService.setEmitFunction(this.emitUpdate.bind(this), execution.id);
+      
       // Update operation status to running
       operationState.status = 'running';
       this.emitUpdate(execution.id, 'operation-started', {
@@ -261,7 +263,7 @@ class WorkflowExecutor {
         status: 'running'
       });
 
-      this.addLog(execution, `Starting ${operation.type} from ${sourceName} to ${targetName}`, 'info');
+      this.addLog(execution, `Starting ${operation.type} from ${sourceName} to ${targetName}`, 'info', null, false);
 
       // Execute the operation based on type
       let result;
@@ -294,22 +296,30 @@ class WorkflowExecutor {
       if (result.success) {
         operationState.status = 'success';
         this.updateBranchStatus(execution, operation.target, 'success');
-        this.addLog(execution, `${operation.type} completed successfully from ${sourceName} to ${targetName}`, 'success', result.command);
+        this.addLog(execution, `${operation.type} completed successfully from ${sourceName} to ${targetName}`, 'success', result.command, false);
         
         this.emitUpdate(execution.id, 'operation-completed', {
           operationId,
+          operationType: operation.type,
+          source: sourceName,
+          target: targetName,
           status: 'success',
-          result: result.stdout
+          result: result.stdout,
+          command: result.command
         });
       } else {
         operationState.status = 'failed';
         this.updateBranchStatus(execution, operation.target, 'failed');
-        this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'error', result.command);
+        this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'error', result.command, false);
         
         this.emitUpdate(execution.id, 'operation-failed', {
           operationId,
+          operationType: operation.type,
+          source: sourceName,
+          target: targetName,
           status: 'failed',
-          error: result.error
+          error: result.error,
+          command: result.command
         });
       }
 
@@ -320,6 +330,9 @@ class WorkflowExecutor {
       
       this.emitUpdate(execution.id, 'operation-failed', {
         operationId,
+        operationType: operation.type,
+        source: sourceName,
+        target: targetName,
         status: 'failed',
         error: error.message
       });
@@ -339,7 +352,7 @@ class WorkflowExecutor {
   /**
    * Add log entry
    */
-  addLog(execution, message, type = 'info', command = null) {
+  addLog(execution, message, type = 'info', command = null, emit = true) {
     const logEntry = {
       timestamp: new Date().toISOString(),
       message,
@@ -348,7 +361,9 @@ class WorkflowExecutor {
     };
     execution.logs.push(logEntry);
     
-    this.emitUpdate(execution.id, 'log-entry', logEntry);
+    if (emit) {
+      this.emitUpdate(execution.id, 'log-entry', logEntry);
+    }
   }
 
   /**
@@ -356,11 +371,14 @@ class WorkflowExecutor {
    */
   emitUpdate(executionId, event, data) {
     if (this.io) {
+      console.log(`📡 Emitting Socket.IO event: ${event} to all clients`);
       this.io.emit(event, {
         executionId,
         timestamp: new Date().toISOString(),
         ...data
       });
+    } else {
+      console.log(`❌ No Socket.IO instance available for event: ${event}`);
     }
   }
 
