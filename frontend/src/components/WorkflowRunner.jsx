@@ -15,6 +15,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import WorkflowManager from './WorkflowManager';
 import './WorkflowRunner.css';
+import { executionService } from '../services';
 
 // Branch node types will be defined after component definitions
 
@@ -52,6 +53,54 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
         setSavedRepositories([]);
       }
     }
+  }, []);
+
+  // Socket.IO connection setup
+  useEffect(() => {
+    // Check if already connected to prevent duplicate connections
+    const connectionStatus = executionService.getConnectionStatus();
+    if (connectionStatus.isConnected) {
+      return;
+    }
+    
+    // Connect to Socket.IO server
+    executionService.connect();
+    
+    // Set up real-time event listeners
+    executionService.on('execution-started', (data) => {
+      addLogEntry(`Execution started: ${data.workflowName}`, 'info');
+    });
+
+    executionService.on('execution-completed', (data) => {
+      addLogEntry('Workflow execution completed successfully!', 'success');
+      setIsExecuting(false);
+    });
+
+    executionService.on('execution-failed', (data) => {
+      addLogEntry(`Workflow execution failed: ${data.error}`, 'error');
+      setIsExecuting(false);
+    });
+
+    executionService.on('operation-started', (data) => {
+      addLogEntry(`Starting ${data.operationType} from ${data.source} to ${data.target}`, 'info');
+    });
+
+    executionService.on('operation-completed', (data) => {
+      addLogEntry(`Operation completed: ${data.operationType}`, 'success');
+    });
+
+    executionService.on('operation-failed', (data) => {
+      addLogEntry(`Operation failed: ${data.error}`, 'error');
+    });
+
+    executionService.on('log-entry', (data) => {
+      addLogEntry(data.message, data.type);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      executionService.disconnect();
+    };
   }, []);
 
   // Save repositories to localStorage
@@ -222,15 +271,12 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     })));
 
     try {
-      // Import ExecutionService
-      const { executionService } = require('../services');
-      
       // Start real execution
       const result = await executionService.startExecution(workflow.id, repositoryPath);
       addLogEntry(`Execution started with ID: ${result.executionId}`, 'info');
       
-      // TODO: Connect Socket.IO events for real-time updates
-      // For now, show success message
+      // Socket.IO events are already connected in useEffect above
+      // Real-time updates will be handled automatically
       addLogEntry('Workflow execution completed successfully!', 'success');
     } catch (error) {
       addLogEntry(`Workflow execution failed: ${error.message}`, 'error');

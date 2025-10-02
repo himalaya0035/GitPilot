@@ -17,8 +17,12 @@ class ExecutionService {
    * Connect to Socket.IO server
    */
   connect() {
-    if (this.socket) {
+    if (this.socket && this.socket.connected) {
       return this.socket;
+    }
+
+    if (this.socket) {
+      this.socket.disconnect();
     }
 
     this.socket = io(this.baseUrl, {
