@@ -210,8 +210,15 @@ class WorkflowExecutor {
       }
     }
 
+    // Only fail the workflow if ALL operations failed
+    if (failed.size === workflow.operations.length) {
+      throw new Error(`All ${failed.size} operations failed`);
+    }
+    
+    // Log partial success if some operations failed but not all
     if (failed.size > 0) {
-      throw new Error(`${failed.size} operations failed`);
+      console.log(`⚠️ Workflow completed with ${failed.size} failed operations out of ${workflow.operations.length} total operations`);
+      this.addLog(execution, `Workflow completed with ${failed.size} failed operations`, 'warning');
     }
   }
 
