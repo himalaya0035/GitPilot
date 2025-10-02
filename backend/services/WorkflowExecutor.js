@@ -294,7 +294,7 @@ class WorkflowExecutor {
       if (result.success) {
         operationState.status = 'success';
         this.updateBranchStatus(execution, operation.target, 'success');
-        this.addLog(execution, `${operation.type} completed successfully from ${sourceName} to ${targetName}`, 'success');
+        this.addLog(execution, `${operation.type} completed successfully from ${sourceName} to ${targetName}`, 'success', result.command);
         
         this.emitUpdate(execution.id, 'operation-completed', {
           operationId,
@@ -304,7 +304,7 @@ class WorkflowExecutor {
       } else {
         operationState.status = 'failed';
         this.updateBranchStatus(execution, operation.target, 'failed');
-        this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'error');
+        this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'error', result.command);
         
         this.emitUpdate(execution.id, 'operation-failed', {
           operationId,
@@ -316,7 +316,7 @@ class WorkflowExecutor {
     } catch (error) {
       operationState.status = 'failed';
       this.updateBranchStatus(execution, operation.target, 'failed');
-      this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${error.message}`, 'error');
+      this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${error.message}`, 'error', result?.command);
       
       this.emitUpdate(execution.id, 'operation-failed', {
         operationId,
@@ -339,11 +339,12 @@ class WorkflowExecutor {
   /**
    * Add log entry
    */
-  addLog(execution, message, type = 'info') {
+  addLog(execution, message, type = 'info', command = null) {
     const logEntry = {
       timestamp: new Date().toISOString(),
       message,
-      type
+      type,
+      ...(command && { command })
     };
     execution.logs.push(logEntry);
     
