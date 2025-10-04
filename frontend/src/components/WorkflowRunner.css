@@ -1324,7 +1324,6 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-right: 8px;
 }
 
 .preview-button:hover:not(:disabled) {
