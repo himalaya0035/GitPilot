@@ -28,6 +28,12 @@
   gap: 16px;
 }
 
+.workflow-id-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .workflow-details h2 {
   margin: 0 0 5px 0;
   color: #333;
@@ -348,28 +354,27 @@
 }
 
 .load-workflow-button {
-  background: #007bff;
+  background: #3b82f6;
   color: white;
   border: none;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 500;
   transition: all 0.2s ease;
   min-width: 0px;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .load-workflow-button:hover {
-  background: #0056b3;
+  background: #2563eb;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
 }
 
 .load-workflow-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
 }
 
 .execute-button {

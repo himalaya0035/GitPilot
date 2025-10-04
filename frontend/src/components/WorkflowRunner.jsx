@@ -483,14 +483,16 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
           <div className="workflow-title-section">
             <div className="workflow-details">
               <h2>{workflow?.name}</h2>
-              <p>ID: {workflow?.id}</p>
+              <div className="workflow-id-row">
+                <p>ID: {workflow?.id}</p>
+                <button 
+                  onClick={() => setShowWorkflowSelector(true)} 
+                  className="load-workflow-button"
+                >
+                  📁 Browse
+                </button>
+              </div>
             </div>
-            <button 
-              onClick={() => setShowWorkflowSelector(true)} 
-              className="load-workflow-button"
-            >
-              📁 Browse
-            </button>
           </div>
         </div>
         
