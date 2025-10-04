@@ -499,17 +499,19 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
           <div className="repository-section">
             <div className="repository-info">
               <span className="repository-label">Git Repository: <span className="required-indicator">*</span></span>
-              <span className="repository-path">{repositoryPath || 'NOT SELECTED'}</span>
-              <button 
-                onClick={() => {
-                  setModalRepositoryPath(repositoryPath);
-                  setModalValidationError('');
-                  setShowRepositorySelector(true);
-                }}
-                className="change-repository-button"
-              >
-                Change
-              </button>
+              <div>
+                <span className="repository-path">{repositoryPath || 'NOT SELECTED'}</span>
+                <button 
+                  onClick={() => {
+                    setModalRepositoryPath(repositoryPath);
+                    setModalValidationError('');
+                    setShowRepositorySelector(true);
+                  }}
+                  className="change-repository-button"
+                >
+                  Change
+                </button>
+              </div>
             </div>
           </div>
           
