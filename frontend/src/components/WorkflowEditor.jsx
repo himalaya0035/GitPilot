@@ -21,6 +21,7 @@ import WorkflowManager from './WorkflowManager';
 import { useWorkflows } from '../hooks/useWorkflows';
 import { useNotification } from '../contexts/NotificationContext';
 import { sanitizeWorkflowName } from '../utils/validation';
+import { getGitWorkflowLayout, animateToNewPositions, analyzeLayout } from '../utils/layout';
 import './WorkflowEditor.css';
 
 // Branch node types will be defined after component definitions
@@ -58,6 +59,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempWorkflowName, setTempWorkflowName] = useState('');
   const [nameValidationError, setNameValidationError] = useState('');
+  const [isBeautifying, setIsBeautifying] = useState(false);
   
   // Copy/Paste functionality state
   const [selectedNodes, setSelectedNodes] = useState(new Set());
@@ -801,6 +803,39 @@ function WorkflowEditor({ onWorkflowCreated }) {
     }
   };
 
+  // Beautify layout functionality
+  const beautifyLayout = useCallback(async () => {
+    if (isBeautifying || nodes.length === 0) return;
+    
+    try {
+      setIsBeautifying(true);
+      
+      // Analyze current layout
+      const analysis = analyzeLayout(nodes, edges);
+      if (!analysis.needsLayout) {
+        showSuccess('Layout looks good 😊');
+        return;
+      }
+      
+      // Calculate new layout
+      const layoutedNodes = getGitWorkflowLayout(nodes, edges);
+      
+      // Animate to new positions
+      animateToNewPositions(nodes, layoutedNodes, setNodes, 600);
+      
+      // Show success message after animation
+      setTimeout(() => {
+        showSuccess('Beautified ✨');
+      }, 650);
+      
+    } catch (error) {
+      console.error('Layout beautification failed:', error);
+      showError('Failed to beautify layout. Please try again.');
+    } finally {
+      setIsBeautifying(false);
+    }
+  }, [nodes, edges, setNodes, isBeautifying, showSuccess, showError]);
+
 
   return (
     <div className="workflow-editor">
@@ -961,6 +996,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
               🗑️ Delete
             </button>
           </div>
+          
           <div className="selection-status">
             <span className="selection-info">
               Selected: {selectedNodes.size} nodes, {selectedEdges.size} edges
@@ -1028,6 +1064,26 @@ function WorkflowEditor({ onWorkflowCreated }) {
                 width={selectionBox.width}
                 height={selectionBox.height}
               />
+            )}
+            
+            {/* Floating Beautify Button */}
+            {nodes.length > 0 && (
+              <div className="floating-beautify-button">
+                <button 
+                  onClick={beautifyLayout}
+                  disabled={isBeautifying}
+                  className="fab-beautify-button"
+                  title="Auto-arrange workflow layout for better readability"
+                >
+                  {isBeautifying ? (
+                    <div className="fab-loading">
+                      <div className="fab-spinner"></div>
+                    </div>
+                  ) : (
+                    <span className="fab-icon">✨</span>
+                  )}
+                </button>
+              </div>
             )}
           </ReactFlow>
         </ReactFlowProvider>
