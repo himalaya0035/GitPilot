@@ -8,6 +8,7 @@ const router = express.Router();
 const { validateWorkflowId, validateRepositoryPath } = require('../middleware/validation');
 const GitService = require('../services/GitService');
 const WorkflowExecutor = require('../services/WorkflowExecutor');
+const WorkflowPreviewService = require('../services/WorkflowPreviewService');
 
 /**
  * POST /api/execution/:id/start
@@ -75,6 +76,40 @@ router.post('/:id/start', validateWorkflowId, validateRepositoryPath, async (req
       .catch((error) => {
         console.error(`Workflow ${id} execution failed:`, error);
       });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/execution/:id/preview
+ * Preview workflow execution commands
+ */
+router.post('/:id/preview', validateWorkflowId, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { repositoryPath } = req.body;
+    
+    // Get workflow from shared data layer
+    const dataLayer = require('../data/sharedDataLayer');
+    const workflow = await dataLayer.getWorkflow(id);
+    
+    if (!workflow) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Workflow not found' }
+      });
+    }
+
+    // Use the new preview service
+    const previewService = new WorkflowPreviewService();
+    const preview = await previewService.generatePreview(workflow, repositoryPath || process.cwd());
+    
+    res.json({
+      success: true,
+      data: preview
+    });
 
   } catch (error) {
     next(error);

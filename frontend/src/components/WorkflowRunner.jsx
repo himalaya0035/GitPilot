@@ -41,6 +41,9 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   const [modalRepositoryPath, setModalRepositoryPath] = useState('');
   const [modalValidationError, setModalValidationError] = useState('');
   const [savedRepositories, setSavedRepositories] = useState([]);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   // Load saved repositories from localStorage
   useEffect(() => {
@@ -318,6 +321,40 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     }
   };
 
+  const previewWorkflow = async () => {
+    if (isLoadingPreview) return;
+    
+    // Validate repository path is required
+    if (!repositoryPath || repositoryPath.trim() === '') {
+      addLogEntry('ERROR: Repository path is required for preview. Please select a Git repository folder.', 'error');
+      return;
+    }
+    
+    setIsLoadingPreview(true);
+    setPreviewMode(true);
+    setExecutionLog([]);
+    addLogEntry(`Generating preview for workflow: ${workflow.name}`, 'info');
+    addLogEntry(`Preview repository: ${repositoryPath}`, 'info');
+
+    try {
+      const preview = await executionService.previewWorkflow(workflow.id, repositoryPath);
+      setPreviewData(preview);
+      addLogEntry(`Preview generated successfully! ${preview.totalCommands} commands will be executed.`, 'success');
+      addLogEntry(`Estimated duration: ${preview.estimatedDuration} seconds`, 'info');
+    } catch (error) {
+      addLogEntry(`Preview generation failed: ${error.message}`, 'error');
+      setPreviewMode(false);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const exitPreviewMode = () => {
+    setPreviewMode(false);
+    setPreviewData(null);
+    setExecutionLog([]);
+  };
+
   // const simulateWorkflowExecution = async () => {
   //   // const operationMap = new Map(edges.map(edge => [edge.id, edge]));
   //   // const branchMap = new Map(nodes.map(node => [node.id, node]));
@@ -415,45 +452,94 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     URL.revokeObjectURL(url);
   };
 
+  const exportPreviewCommands = () => {
+    if (!previewData) return;
+    
+    const commandText = previewData.commands.map((cmd, index) => 
+      `# ${index + 1}. ${cmd.description}\n${cmd.command}\n`
+    ).join('\n');
+    
+    const header = `# Workflow Preview: ${previewData.workflowName}\n# Repository: ${previewData.repositoryPath}\n# Total Commands: ${previewData.totalCommands}\n# Estimated Duration: ${previewData.estimatedDuration} seconds\n\n`;
+    
+    const blob = new Blob([header + commandText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `workflow-preview-${workflow.id}-${Date.now()}.sh`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+
   return (
     <div className="workflow-runner">
       <div className="runner-header">
         <div className="workflow-info">
-          <h2>{workflow?.name}</h2>
-          <p>ID: {workflow?.id}</p>
-          <div className="repository-info">
-            <span className="repository-label">Git Repository: <span className="required-indicator">*</span></span>
-            <span className="repository-path">{repositoryPath || 'NOT SELECTED'}</span>
+          <button onClick={onBackToEditor} className="back-button">
+            ← Back to Editor
+          </button>
+          <div className="workflow-title-section">
+            <div className="workflow-details">
+              <h2>{workflow?.name}</h2>
+              <p>ID: {workflow?.id}</p>
+            </div>
             <button 
-              onClick={() => {
-                setModalRepositoryPath(repositoryPath);
-                setModalValidationError('');
-                setShowRepositorySelector(true);
-              }}
-              className="change-repository-button"
+              onClick={() => setShowWorkflowSelector(true)} 
+              className="load-workflow-button"
             >
-              Change
+              📁 Browse
             </button>
           </div>
         </div>
         
         <div className="runner-controls">
-          <button onClick={onBackToEditor} className="back-button">
-            ← Back to Editor
-          </button>
-          <button 
-            onClick={() => setShowWorkflowSelector(true)} 
-            className="load-workflow-button"
-          >
-            Load Another Workflow
-          </button>
-          <button 
-            onClick={executeWorkflow} 
-            disabled={isExecuting || !repositoryPath || repositoryPath.trim() === ''}
-            className="execute-button"
-          >
-            {isExecuting ? 'Executing...' : 'Execute Workflow'}
-          </button>
+          
+          <div className="repository-section">
+            <div className="repository-info">
+              <span className="repository-label">Git Repository: <span className="required-indicator">*</span></span>
+              <span className="repository-path">{repositoryPath || 'NOT SELECTED'}</span>
+              <button 
+                onClick={() => {
+                  setModalRepositoryPath(repositoryPath);
+                  setModalValidationError('');
+                  setShowRepositorySelector(true);
+                }}
+                className="change-repository-button"
+              >
+                Change
+              </button>
+            </div>
+          </div>
+          
+          {!previewMode ? (
+            <div className="action-buttons">
+              <button 
+                onClick={previewWorkflow} 
+                disabled={isLoadingPreview || !repositoryPath || repositoryPath.trim() === ''}
+                className="preview-button"
+              >
+                {isLoadingPreview ? 'Generating Preview...' : 'Preview Workflow'}
+              </button>
+              <button 
+                onClick={executeWorkflow} 
+                disabled={isExecuting || !repositoryPath || repositoryPath.trim() === ''}
+                className="execute-button"
+              >
+                {isExecuting ? 'Executing...' : 'Execute Workflow'}
+              </button>
+            </div>
+          ) : (
+            <div className="action-buttons">
+              <button 
+                onClick={exitPreviewMode} 
+                className="exit-preview-button"
+              >
+                Exit Preview
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -478,48 +564,168 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
           </ReactFlowProvider>
         </div>
 
-        <div className="execution-panel">
-          <div className="panel-header">
-            <h3>Execution Logs</h3>
-            <div className="log-controls">
-              <button onClick={clearLogs} className="clear-button">
-                Clear
-              </button>
-              <button onClick={exportLogs} className="export-button">
-                Export
-              </button>
+        {previewMode ? (
+          <div className="preview-panel">
+            <div className="panel-header">
+              <h3>Workflow Preview</h3>
+              <div className="preview-controls">
+                <button onClick={exportPreviewCommands} className="export-button">
+                  📄 Export Script
+                </button>
+              </div>
             </div>
-          </div>
-          
-          <div className="execution-log">
-            {executionLog.length === 0 ? (
-              <div className="no-logs">
-                <div className="no-logs-icon">📋</div>
-                <div className="no-logs-text">No execution logs yet</div>
-                <div className="no-logs-subtext">Start a workflow execution to see logs here</div>
+            
+            {previewData ? (
+              <div className="preview-content">
+                <div className="preview-summary">
+                  <div className="summary-grid">
+                    <div className="summary-item">
+                      <div className="summary-label">
+                        <span>📊</span>
+                        Total Commands
+                      </div>
+                      <div className="summary-value">{previewData.totalCommands}</div>
+                    </div>
+                    <div className="summary-item">
+                      <div className="summary-label">
+                        <span>⏱️</span>
+                        Estimated Duration
+                      </div>
+                      <div className="summary-value">{previewData.estimatedDuration}s</div>
+                    </div>
+                    <div className="summary-item repository-item">
+                      <div className="summary-label">
+                        <span>📁</span>
+                        Repository Path
+                      </div>
+                      <div className="summary-value repository-value" title={previewData.repositoryPath}>
+                        {previewData.repositoryPath}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="command-list">
+                  <div className="command-list-header">
+                    <h4>Commands (in execution order)</h4>
+                  </div>
+                  {previewData.commands.map((command, index) => (
+                    <div key={command.id} className={`command-item risk-${command.riskLevel}`}>
+                      <div className="command-header">
+                        <div className="command-number">{index + 1}</div>
+                        <div className="command-type">{command.description}</div>
+                        <div className="command-risk">
+                          <span className={`risk-indicator risk-${command.riskLevel}`}>
+                            {command.riskLevel}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="command-code">
+                        <code>{command.command}</code>
+                      </div>
+                      {command.warnings && command.warnings.length > 0 && (
+                        <div className="command-warnings">
+                          {command.warnings.map((warning, wIndex) => (
+                            <div key={wIndex} className="warning-item">
+                              ⚠️ {warning}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                {previewData.riskAnalysis && (
+                  <div className="risk-analysis">
+                    <h4>Risk Analysis</h4>
+                    <div className="risk-summary">
+                      <div className="risk-overall">
+                        <span className="risk-label">Overall Risk:</span>
+                        <span className={`risk-value risk-${previewData.riskAnalysis.overallRisk}`}>
+                          {previewData.riskAnalysis.overallRisk}
+                        </span>
+                      </div>
+                      <div className="risk-breakdown">
+                        <div className="risk-item">
+                          <span className="risk-count risk-low">{previewData.riskAnalysis.riskCounts.low}</span>
+                          <span className="risk-label">Low Risk</span>
+                        </div>
+                        <div className="risk-item">
+                          <span className="risk-count risk-medium">{previewData.riskAnalysis.riskCounts.medium}</span>
+                          <span className="risk-label">Medium Risk</span>
+                        </div>
+                        <div className="risk-item">
+                          <span className="risk-count risk-high">{previewData.riskAnalysis.riskCounts.high}</span>
+                          <span className="risk-label">High Risk</span>
+                        </div>
+                      </div>
+                    </div>
+                    {previewData.riskAnalysis.recommendations && previewData.riskAnalysis.recommendations.length > 0 && (
+                      <div className="recommendations">
+                        <h5>Recommendations:</h5>
+                        <ul>
+                          {previewData.riskAnalysis.recommendations.map((rec, index) => (
+                            <li key={index}>{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="log-entries">
-                 {executionLog.map((entry, index) => {
-                   const isSeparator = entry.type === 'separator';
-                   return (
-                     <div key={index} className={`log-entry ${entry.type} ${isSeparator ? 'separator' : ''}`}>
-                       <div className="log-content">
-                         <div className="log-message">{entry.command ? "Command:" : entry.message}</div>
-                         {entry.command && (
-                           <div className="log-command">
-                             <code>{entry.command}</code>
-                           </div>
-                         )}
-                       </div>
-                       <div className="log-time">{entry.timestamp}</div>
-                     </div>
-                   );
-                 })}
+              <div className="no-preview">
+                <div className="no-preview-icon">🔍</div>
+                <div className="no-preview-text">No preview data available</div>
+                <div className="no-preview-subtext">Generate a preview to see commands</div>
               </div>
             )}
           </div>
-        </div>
+        ) : (
+          <div className="execution-panel">
+            <div className="panel-header">
+              <h3>Execution Logs</h3>
+              <div className="log-controls">
+                <button onClick={clearLogs} className="clear-button">
+                  Clear
+                </button>
+                <button onClick={exportLogs} className="export-button">
+                  Export
+                </button>
+              </div>
+            </div>
+            
+            <div className="execution-log">
+              {executionLog.length === 0 ? (
+                <div className="no-logs">
+                  <div className="no-logs-icon">📋</div>
+                  <div className="no-logs-text">No execution logs yet</div>
+                  <div className="no-logs-subtext">Start a workflow execution to see logs here</div>
+                </div>
+              ) : (
+                <div className="log-entries">
+                   {executionLog.map((entry, index) => {
+                     const isSeparator = entry.type === 'separator';
+                     return (
+                       <div key={index} className={`log-entry ${entry.type} ${isSeparator ? 'separator' : ''}`}>
+                         <div className="log-content">
+                           <div className="log-message">{entry.command ? "Command:" : entry.message}</div>
+                           {entry.command && (
+                             <div className="log-command">
+                               <code>{entry.command}</code>
+                             </div>
+                           )}
+                         </div>
+                         <div className="log-time">{entry.timestamp}</div>
+                       </div>
+                     );
+                   })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {showWorkflowSelector && (

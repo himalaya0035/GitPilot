@@ -43,13 +43,6 @@ class WorkflowExecutor {
       // Initialize operation and branch states
       this.initializeExecutionState(workflow, execution);
 
-      // Emit execution started
-      // this.emitUpdate(executionId, 'execution-started', {
-      //   executionId,
-      //   workflowName: workflow.name,
-      //   status: 'running'
-      // });
-
       // Build dependency graph
       const dependencies = this.buildDependencyGraph(workflow.operations);
       // Execute operations

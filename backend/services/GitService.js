@@ -11,14 +11,18 @@ const path = require('path');
 const execAsync = promisify(exec);
 
 class GitService {
-  constructor(workingDirectory = process.cwd()) {
+  constructor(workingDirectory = process.cwd(), mockMode = false) {
     this.workingDirectory = workingDirectory;
     this.gitPilotRepoPath = process.cwd();
     this.emitUpdate = null;
     this.currentExecutionId = null;
+    this.mockMode = mockMode;
+    this.interceptedCommands = [];
     
-    // SECURITY: Prevent execution on GitPilot repository
-    this.validateRepositoryPath();
+    // SECURITY: Prevent execution on GitPilot repository (skip in mock mode)
+    if (!mockMode) {
+      this.validateRepositoryPath();
+    }
   }
 
   /**
@@ -49,8 +53,35 @@ class GitService {
    * Execute a Git command
    */
   async executeGitCommand(command, options = {}) {
-    const { cwd = this.workingDirectory, timeout = 30000, skipEmission = false } = options;
+    const { cwd = this.workingDirectory, timeout = 30000, skipEmission = false, allowExecutionInMockMode = false, interceptCommandInMockMode = true } = options;
     
+    // If in mock mode, intercept the command and return mock response
+    if (this.mockMode && !allowExecutionInMockMode) {
+      console.log(`🔍 Mock mode: Intercepting command: ${command}`);
+      
+      // Store the intercepted command
+      if (interceptCommandInMockMode){
+        this.interceptedCommands.push({
+          id: `cmd-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          command,
+          timestamp: new Date().toISOString(),
+          options: { cwd, timeout, skipEmission },
+          riskLevel: this.analyzeCommandRisk(command),
+          warnings: this.generateCommandWarnings(command),
+          description: this.generateCommandDescription(command)
+        });
+      }
+      
+      // Return mock success response
+      return {
+        success: true,
+        stdout: 'Mock execution - command intercepted',
+        stderr: '',
+        command
+      };
+    }
+    
+    // Normal execution (existing logic unchanged)
     try {
       console.log(`Executing Git command: ${command}`);
       
@@ -377,7 +408,7 @@ class GitService {
    * Get current branch
    */
   async getCurrentBranch() {
-    const result = await this.executeGitCommand('git branch --show-current', { skipEmission: true });
+    const result = await this.executeGitCommand('git branch --show-current', { skipEmission: true, allowExecutionInMockMode: true });
     return result;
   }
 
@@ -395,13 +426,13 @@ class GitService {
   async checkBranchExists(branchName) {
     try {
       // Check if branch exists locally
-      const localResult = await this.executeGitCommand(`git show-ref --verify --quiet refs/heads/${branchName}`, { skipEmission: true });
+      const localResult = await this.executeGitCommand(`git show-ref --verify --quiet refs/heads/${branchName}`, { skipEmission: true, interceptCommandInMockMode: false });
       if (localResult.success) {
         return true;
       }
       
       // Check if branch exists remotely
-      const remoteResult = await this.executeGitCommand(`git show-ref --verify --quiet refs/remotes/origin/${branchName}`, { skipEmission: true });
+      const remoteResult = await this.executeGitCommand(`git show-ref --verify --quiet refs/remotes/origin/${branchName}`, { skipEmission: true, interceptCommandInMockMode: false });
       if (remoteResult.success) {
         return true;
       }
@@ -417,7 +448,7 @@ class GitService {
    * Check if repository is clean
    */
   async isRepositoryClean() {
-    const result = await this.executeGitCommand('git status --porcelain', { skipEmission: true });
+    const result = await this.executeGitCommand('git status --porcelain', { skipEmission: true, allowExecutionInMockMode: true });
     return {
       ...result,
       isClean: result.success && result.stdout === ''
@@ -428,7 +459,7 @@ class GitService {
    * Validate Git repository
    */
   async validateRepository() {
-    const result = await this.executeGitCommand('git rev-parse --is-inside-work-tree', { skipEmission: true });
+    const result = await this.executeGitCommand('git rev-parse --is-inside-work-tree', { skipEmission: true, allowExecutionInMockMode: true });
     return {
       ...result,
       isValid: result.success && result.stdout.trim() === 'true'
@@ -451,6 +482,146 @@ class GitService {
       isClean: isClean.isClean,
       workingDirectory: this.workingDirectory
     };
+  }
+
+  // ===== MOCK MODE METHODS =====
+
+  /**
+   * Get all intercepted commands (for preview mode)
+   */
+  getInterceptedCommands() {
+    return this.interceptedCommands;
+  }
+
+  /**
+   * Clear intercepted commands
+   */
+  clearInterceptedCommands() {
+    this.interceptedCommands = [];
+  }
+
+  /**
+   * Enable or disable mock mode
+   */
+  setMockMode(enabled) {
+    this.mockMode = enabled;
+    if (enabled) {
+      this.clearInterceptedCommands();
+    }
+  }
+
+  /**
+   * Analyze command risk level
+   */
+  analyzeCommandRisk(command) {
+    // High risk: force operations
+    if (command.includes('--force') || command.includes(' -f')) {
+      return 'high';
+    }
+    if (command.includes('checkout') && command.includes('-B')) {
+      return 'high';
+    }
+    
+    // Medium risk: operations that can cause conflicts or rewrite history
+    if (command.includes('rebase') || command.includes('--force-with-lease')) {
+      return 'medium';
+    }
+    if (command.includes('merge') || command.includes('pull')) {
+      return 'medium';
+    }
+    
+    // Low risk: safe operations
+    return 'low';
+  }
+
+  /**
+   * Generate warnings for a command
+   */
+  generateCommandWarnings(command) {
+    const warnings = [];
+    
+    // Check for force flags (both --force and -f)
+    if (command.includes('--force') || command.includes(' -f')) {
+      warnings.push('Force flag will overwrite changes without confirmation');
+    }
+    if (command.includes('--force-with-lease')) {
+      warnings.push('Force with lease may overwrite remote changes');
+    }
+    if (command.includes('rebase')) {
+      warnings.push('Rebase rewrites history and may cause conflicts');
+    }
+    if (command.includes('merge')) {
+      warnings.push('Merge may create conflicts that need resolution');
+    }
+    if (command.includes('delete') && command.includes('-D')) {
+      warnings.push('Force delete will remove branch even if not merged');
+    }
+    
+    // Check for branch creation with force
+    if (command.includes('checkout') && command.includes('-B')) {
+      warnings.push('Branch reset will overwrite existing branch');
+    }
+    
+    return warnings;
+  }
+
+  /**
+   * Generate human-readable command description
+   */
+  generateCommandDescription(command) {
+    if (command.includes('checkout -b')) {
+      return 'Create new branch';
+    }
+    if (command.includes('checkout -B')) {
+      return 'Create and reset branch (force)';
+    }
+    if (command.includes('checkout -f')) {
+      return 'Force checkout (discard changes)';
+    }
+    if (command.includes('checkout')) {
+      return 'Switch to branch';
+    }
+    if (command.includes('merge --squash')) {
+      return 'Squash merge branches';
+    }
+    if (command.includes('merge --no-ff')) {
+      return 'Merge with no fast-forward';
+    }
+    if (command.includes('merge')) {
+      return 'Merge branches';
+    }
+    if (command.includes('rebase -i')) {
+      return 'Interactive rebase';
+    }
+    if (command.includes('rebase')) {
+      return 'Rebase branches';
+    }
+    if (command.includes('push --force')) {
+      return 'Force push to remote';
+    }
+    if (command.includes('push --force-with-lease')) {
+      return 'Force push with lease';
+    }
+    if (command.includes('push')) {
+      return 'Push to remote';
+    }
+    if (command.includes('pull --rebase')) {
+      return 'Pull with rebase';
+    }
+    if (command.includes('pull')) {
+      return 'Pull from remote';
+    }
+    if (command.includes('delete')) {
+      return 'Delete branch';
+    }
+    if (command.includes('tag -a')) {
+      return 'Create annotated tag';
+    }
+    if (command.includes('tag')) {
+      return 'Create tag';
+    }
+    
+    return 'Git operation';
   }
 }
 

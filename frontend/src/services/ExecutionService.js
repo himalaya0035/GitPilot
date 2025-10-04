@@ -183,6 +183,34 @@ class ExecutionService {
   }
 
   /**
+   * Preview workflow execution commands
+   */
+  async previewWorkflow(workflowId, repositoryPath = null) {
+    try {
+      const requestBody = repositoryPath ? { repositoryPath } : {};
+      
+      const response = await fetch(`${this.baseUrl}/api/execution/${workflowId}/preview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to preview workflow');
+      }
+
+      return result.data;
+    } catch (error) {
+      console.error('Failed to preview workflow:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Add event listener
    */
   on(event, callback) {
