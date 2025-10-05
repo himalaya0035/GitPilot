@@ -23,6 +23,21 @@ import { useNotification } from '../contexts/NotificationContext';
 import { sanitizeWorkflowName } from '../utils/validation';
 import { getGitWorkflowLayout, animateToNewPositions, analyzeLayout } from '../utils/layout';
 import './WorkflowEditor.css';
+import { 
+  Factory, 
+  Wrench, 
+  Rocket, 
+  AlertTriangle, 
+  Settings, 
+  TestTube, 
+  Link, 
+  Globe, 
+  Clipboard, 
+  FileText, 
+  Target, 
+  Trash2, 
+  Sparkles 
+} from 'lucide-react';
 
 // Branch node types will be defined after component definitions
 
@@ -1058,7 +1073,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
               className="control-button copy-button"
               title="Copy selected elements (Ctrl+C)"
             >
-              📋 Copy
+              <Clipboard size={16} />
+              Copy
             </button>
             <button 
               onClick={pasteElements}
@@ -1066,7 +1082,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
               className="control-button paste-button"
               title="Paste elements (Ctrl+V)"
             >
-              📄 Paste
+              <FileText size={16} />
+              Paste
             </button>
             <button 
               onClick={selectAllElements}
@@ -1074,7 +1091,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
               className="control-button select-all-button"
               title="Select all elements (Ctrl+A)"
             >
-              🎯 Select All
+              <Target size={16} />
+              Select All
             </button>
             <button 
               onClick={deleteSelectedElements}
@@ -1082,7 +1100,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
               className="control-button delete-button"
               title="Delete selected elements (Delete)"
             >
-              🗑️ Delete
+              <Trash2 size={16} />
+              Delete
             </button>
           </div>
           
@@ -1169,7 +1188,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
                       <div className="fab-spinner"></div>
                     </div>
                   ) : (
-                    <span className="fab-icon">✨</span>
+                    <Sparkles size={20} />
                   )}
                 </button>
               </div>
@@ -1232,11 +1251,17 @@ function ProductionBranchNode({ data, selected }) {
         isConnectable={true}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🏭</div>
+        <div className="branch-type-icon">
+          <Factory size={16} />
+        </div>
         <span className="branch-type">PROD</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1275,11 +1300,17 @@ function FeatureBranchNode({ data, selected }) {
         isConnectable={true}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🔧</div>
+        <div className="branch-type-icon">
+          <Wrench size={16} />
+        </div>
         <span className="branch-type">FEATURE</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1318,11 +1349,17 @@ function ReleaseBranchNode({ data, selected }) {
         isConnectable={true}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🚀</div>
+        <div className="branch-type-icon">
+          <Rocket size={16} />
+        </div>
         <span className="branch-type">RELEASE</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1361,11 +1398,17 @@ function HotfixBranchNode({ data, selected }) {
         isConnectable={true}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🚨</div>
+        <div className="branch-type-icon">
+          <AlertTriangle size={16} />
+        </div>
         <span className="branch-type">HOTFIX</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1404,11 +1447,17 @@ function DevelopBranchNode({ data, selected }) {
         isConnectable={true}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">⚙️</div>
+        <div className="branch-type-icon">
+          <Settings size={16} />
+        </div>
         <span className="branch-type">DEVELOP</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1447,11 +1496,17 @@ function StagingBranchNode({ data, selected }) {
         isConnectable={true}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🧪</div>
+        <div className="branch-type-icon">
+          <TestTube size={16} />
+        </div>
         <span className="branch-type">STAGING</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1490,11 +1545,17 @@ function IntegrationBranchNode({ data, selected }) {
         isConnectable={true}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🔗</div>
+        <div className="branch-type-icon">
+          <Link size={16} />
+        </div>
         <span className="branch-type">INTEGRATION</span>
       </div>
       <div className="branch-name">{data.branchName}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">

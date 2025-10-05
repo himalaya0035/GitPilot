@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Notification.css';
+import { CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 
 const Notification = ({ message, type = 'info', duration = 3000, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -26,12 +27,12 @@ const Notification = ({ message, type = 'info', duration = 3000, onClose }) => {
   return (
     <div className={`notification ${type} ${isVisible ? 'visible' : ''}`}>
       <div className="notification-content">
-        <span className="notification-icon">
-          {type === 'success' && '✅'}
-          {type === 'error' && '❌'}
-          {type === 'warning' && '⚠️'}
-          {type === 'info' && 'ℹ️'}
-        </span>
+        <div className="notification-icon">
+          {type === 'success' && <CheckCircle size={20} />}
+          {type === 'error' && <XCircle size={20} />}
+          {type === 'warning' && <AlertTriangle size={20} />}
+          {type === 'info' && <Info size={20} />}
+        </div>
         <span className="notification-message">{message}</span>
         <button className="notification-close" onClick={handleClose}>
           ×

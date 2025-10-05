@@ -2,47 +2,56 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import { validateBranchName, sanitizeBranchName } from '../utils/validation';
 import './BranchConfigModal.css';
+import { 
+  Factory, 
+  Wrench, 
+  Rocket, 
+  AlertTriangle, 
+  Settings, 
+  TestTube, 
+  Link 
+} from 'lucide-react';
 
 const branchTypeConfigs = {
   production: {
     title: 'Production Branch Configuration',
-    icon: '🏭',
+    icon: <Factory size={20} />,
     description: 'Main production branch',
     defaultProtection: 'strict'
   },
   feature: {
     title: 'Feature Branch Configuration',
-    icon: '🔧',
+    icon: <Wrench size={20} />,
     description: 'Feature development branch',
     defaultProtection: 'none'
   },
   release: {
     title: 'Release Branch Configuration',
-    icon: '🚀',
+    icon: <Rocket size={20} />,
     description: 'Release preparation branch',
     defaultProtection: 'moderate'
   },
   hotfix: {
     title: 'Hotfix Branch Configuration',
-    icon: '🚨',
+    icon: <AlertTriangle size={20} />,
     description: 'Critical bug fix branch',
     defaultProtection: 'moderate'
   },
   develop: {
     title: 'Develop Branch Configuration',
-    icon: '⚙️',
+    icon: <Settings size={20} />,
     description: 'Integration branch for features',
     defaultProtection: 'moderate'
   },
   staging: {
     title: 'Staging Branch Configuration',
-    icon: '🧪',
+    icon: <TestTube size={20} />,
     description: 'Pre-production testing environment',
     defaultProtection: 'moderate'
   },
   integration: {
     title: 'Integration Branch Configuration',
-    icon: '🔗',
+    icon: <Link size={20} />,
     description: 'Integration testing and validation branch',
     defaultProtection: 'moderate'
   }
@@ -101,7 +110,7 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
       <div className="branch-config-modal">
         <div className="modal-header">
           <div className="header-content">
-            <span className="branch-icon">{config.icon}</span>
+            <div className="branch-icon-for-branch-modal">{config.icon}</div>
             <div>
               <h3>{config.title}</h3>
               <p className="branch-description">{config.description}</p>

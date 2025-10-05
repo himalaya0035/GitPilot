@@ -4,6 +4,7 @@ import WorkflowEditor from './components/WorkflowEditor';
 import WorkflowRunner from './components/WorkflowRunner';
 import WorkflowManager from './components/WorkflowManager';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { Edit3, Play } from 'lucide-react';
 
 function App() {
   const [currentView, setCurrentView] = useState('editor'); // 'editor' or 'runner'
@@ -46,14 +47,18 @@ function App() {
               className={`nav-tab ${currentView === 'editor' ? 'active' : ''}`}
               onClick={() => setCurrentView('editor')}
             >
-              <span className="nav-tab-icon">✏️</span>
+              <span className="nav-tab-icon">
+                <Edit3 size={18} />
+              </span>
               Workflow Editor
             </button>
             <button 
               className={`nav-tab ${currentView === 'runner' ? 'active' : ''}`}
               onClick={handleWorkflowRunnerClick}
             >
-              <span className="nav-tab-icon">🚀</span>
+              <span className="nav-tab-icon">
+                <Play size={18} />
+              </span>
               Workflow Runner
               {!workflow && <span className="nav-tab-badge">!</span>}
             </button>

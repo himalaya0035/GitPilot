@@ -16,6 +16,24 @@ import 'reactflow/dist/style.css';
 import WorkflowManager from './WorkflowManager';
 import './WorkflowRunner.css';
 import { executionService } from '../services';
+import { 
+  Factory, 
+  Wrench, 
+  Rocket, 
+  AlertTriangle, 
+  Settings, 
+  TestTube, 
+  Link, 
+  Globe, 
+  FolderOpen, 
+  FileText, 
+  BarChart3, 
+  Clock, 
+  Clipboard, 
+  Search, 
+  AlertCircle,
+  ArrowLeft
+} from 'lucide-react';
 
 // Branch node types will be defined after component definitions
 
@@ -491,7 +509,8 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
                   onClick={() => setShowWorkflowSelector(true)} 
                   className="load-workflow-button"
                 >
-                  📁 Browse
+                  <FolderOpen size={16} />
+                  Browse
                 </button>
               </div>
             </div>
@@ -576,7 +595,8 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
               <h3>Workflow Preview</h3>
               <div className="preview-controls">
                 <button onClick={exportPreviewCommands} className="export-button">
-                  📄 Export Script
+                  <FileText size={16} />
+                  Export Script
                 </button>
               </div>
             </div>
@@ -587,21 +607,21 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
                   <div className="summary-grid">
                     <div className="summary-item">
                       <div className="summary-label">
-                        <span>📊</span>
+                        <BarChart3 size={16} />
                         Total Commands
                       </div>
                       <div className="summary-value">{previewData.totalCommands}</div>
                     </div>
                     <div className="summary-item">
                       <div className="summary-label">
-                        <span>⏱️</span>
+                        <Clock size={16} />
                         Estimated Duration
                       </div>
                       <div className="summary-value">{previewData.estimatedDuration}s</div>
                     </div>
                     <div className="summary-item repository-item">
                       <div className="summary-label">
-                        <span>📁</span>
+                        <FolderOpen size={16} />
                         Repository Path
                       </div>
                       <div className="summary-value repository-value" title={previewData.repositoryPath}>
@@ -633,7 +653,8 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
                         <div className="command-warnings">
                           {command.warnings.map((warning, wIndex) => (
                             <div key={wIndex} className="warning-item">
-                              ⚠️ {warning}
+                              <AlertCircle size={14} />
+                              {warning}
                             </div>
                           ))}
                         </div>
@@ -682,7 +703,9 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
               </div>
             ) : (
               <div className="no-preview">
-                <div className="no-preview-icon">🔍</div>
+                <div className="no-preview-icon">
+                  <Search size={24} />
+                </div>
                 <div className="no-preview-text">No preview data available</div>
                 <div className="no-preview-subtext">Generate a preview to see commands</div>
               </div>
@@ -705,7 +728,9 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
             <div className="execution-log">
               {executionLog.length === 0 ? (
                 <div className="no-logs">
-                  <div className="no-logs-icon">📋</div>
+                  <div className="no-logs-icon">
+                    <Clipboard size={24} />
+                  </div>
                   <div className="no-logs-text">No execution logs yet</div>
                   <div className="no-logs-subtext">Start a workflow execution to see logs here</div>
                 </div>
@@ -916,12 +941,18 @@ function ProductionBranchNode({ data, selected }) {
         isConnectable={false}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🏭</div>
+        <div className="branch-type-icon">
+          <Factory size={16} />
+        </div>
         <span className="branch-type">PROD</span>
         <span className="status-indicator"></span>
       </div>
       <div className="branch-name">{data.name}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -960,12 +991,18 @@ function FeatureBranchNode({ data, selected }) {
         isConnectable={false}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🔧</div>
+        <div className="branch-type-icon">
+          <Wrench size={16} />
+        </div>
         <span className="branch-type">FEATURE</span>
         <span className="status-indicator"></span>
       </div>
       <div className="branch-name">{data.name}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1004,12 +1041,18 @@ function ReleaseBranchNode({ data, selected }) {
         isConnectable={false}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🚀</div>
+        <div className="branch-type-icon">
+          <Rocket size={16} />
+        </div>
         <span className="branch-type">RELEASE</span>
         <span className="status-indicator"></span>
       </div>
       <div className="branch-name">{data.name}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1048,12 +1091,18 @@ function HotfixBranchNode({ data, selected }) {
         isConnectable={false}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🚨</div>
+        <div className="branch-type-icon">
+          <AlertTriangle size={16} />
+        </div>
         <span className="branch-type">HOTFIX</span>
         <span className="status-indicator"></span>
       </div>
       <div className="branch-name">{data.name}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1092,12 +1141,18 @@ function DevelopBranchNode({ data, selected }) {
         isConnectable={false}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">⚙️</div>
+        <div className="branch-type-icon">
+          <Settings size={16} />
+        </div>
         <span className="branch-type">DEVELOP</span>
         <span className="status-indicator"></span>
       </div>
       <div className="branch-name">{data.name}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1136,12 +1191,18 @@ function StagingBranchNode({ data, selected }) {
         isConnectable={false}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🧪</div>
+        <div className="branch-type-icon">
+          <TestTube size={16} />
+        </div>
         <span className="branch-type">STAGING</span>
         <span className="status-indicator"></span>
       </div>
       <div className="branch-name">{data.name}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
@@ -1180,12 +1241,18 @@ function IntegrationBranchNode({ data, selected }) {
         isConnectable={false}
       />
       <div className="branch-header">
-        <div className="branch-type-icon">🔗</div>
+        <div className="branch-type-icon">
+          <Link size={16} />
+        </div>
         <span className="branch-type">INTEGRATION</span>
         <span className="status-indicator"></span>
       </div>
       <div className="branch-name">{data.name}</div>
-      {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.isRemote && (
+        <div className="remote-indicator">
+          <Globe size={12} />
+        </div>
+      )}
       {data.autoPull && (
         <div className="auto-pull-indicator">
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">

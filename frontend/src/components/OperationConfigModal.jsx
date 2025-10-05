@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import './OperationConfigModal.css';
+import { 
+  Clipboard, 
+  GitMerge, 
+  RotateCcw, 
+  ArrowUp, 
+  ArrowDown, 
+  Trash2, 
+  Tag, 
+  Settings 
+} from 'lucide-react';
 
 const operationConfigs = {
   checkout: {
     title: 'Checkout Operation',
-    icon: '📋',
+    icon: <Clipboard size={20} />,
     description: 'Create or switch to a branch',
     fields: [
       { name: 'checkoutType', label: 'Checkout Type', type: 'select', options: [
@@ -26,7 +36,7 @@ const operationConfigs = {
   },
   merge: {
     title: 'Merge Operation',
-    icon: '🔀',
+    icon: <GitMerge size={20} />,
     description: 'Merge source branch into target branch',
     fields: [
       { name: 'strategy', label: 'Merge Strategy', type: 'select', options: [
@@ -55,7 +65,7 @@ const operationConfigs = {
   },
   rebase: {
     title: 'Rebase Operation',
-    icon: '🔄',
+    icon: <RotateCcw size={20} />,
     description: 'Rebase current branch onto target branch',
     fields: [
       { name: 'interactive', label: 'Interactive Rebase', type: 'checkbox', default: false },
@@ -64,7 +74,7 @@ const operationConfigs = {
   },
   push: {
     title: 'Push Operation',
-    icon: '⬆️',
+    icon: <ArrowUp size={20} />,
     description: 'Push branch to remote repository',
     fields: [
       { name: 'remote', label: 'Remote Name', type: 'text', placeholder: 'origin', default: 'origin' },
@@ -90,7 +100,7 @@ const operationConfigs = {
   },
   pull: {
     title: 'Pull Operation',
-    icon: '⬇️',
+    icon: <ArrowDown size={20} />,
     description: 'Pull changes from remote repository',
     fields: [
       { name: 'remote', label: 'Remote Name', type: 'text', placeholder: 'origin', default: 'origin' },
@@ -99,7 +109,7 @@ const operationConfigs = {
   },
   'delete-branch': {
     title: 'Delete Branch Operation',
-    icon: '🗑️',
+    icon: <Trash2 size={20} />,
     description: 'Delete a branch (local or remote)',
     fields: [
       { name: 'remote', label: 'Delete Remote Branch', type: 'checkbox', default: false },
@@ -108,7 +118,7 @@ const operationConfigs = {
   },
   tag: {
     title: 'Tag Operation',
-    icon: '🏷️',
+    icon: <Tag size={20} />,
     description: 'Create and push a Git tag',
     fields: [
       { name: 'tagName', label: 'Tag Name', type: 'text', placeholder: 'v1.0.0', required: true },
@@ -268,7 +278,7 @@ function OperationConfigModal({ edge, onSave, onCancel, onDelete }) {
       <div className="operation-config-modal">
         <div className="modal-header">
           <div className="header-content">
-            <span className="operation-icon">{config?.icon || '⚙️'}</span>
+            <div className="operation-icon">{config?.icon || <Settings size={20} />}</div>
             <div>
               <h3>{config?.title || 'Operation Configuration'}</h3>
               <p className="operation-description">
