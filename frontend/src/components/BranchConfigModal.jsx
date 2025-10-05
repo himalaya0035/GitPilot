@@ -57,7 +57,8 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
     // Initialize form data with existing branch data or defaults
     setFormData({
       branchName: branch.data.branchName || '',
-      isRemote: branch.data.isRemote || false,
+      autoPull: branch.data.autoPull || false,
+      autoPullRemote: branch.data.autoPullRemote || 'origin',
       protection: branch.data.protection || config.defaultProtection,
       description: branch.data.description || '',
     });
@@ -134,18 +135,33 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
               />
             </div>
 
+
             <div className="form-group">
               <label className="checkbox-label">
                 <input
                   type="checkbox"
-                  checked={formData.isRemote}
-                  onChange={(e) => handleInputChange('isRemote', e.target.checked)}
+                  checked={formData.autoPull}
+                  onChange={(e) => handleInputChange('autoPull', e.target.checked)}
                 />
                 <span className="checkmark"></span>
-                Remote Branch
-                <small>This branch exists on the remote repository</small>
+                Pull latest changes from remote
+                <small>Automatically create pull operation for this branch</small>
               </label>
             </div>
+
+            {formData.autoPull && (
+              <div className="form-group">
+                <label htmlFor="autoPullRemote">Remote Name</label>
+                <input
+                  type="text"
+                  id="autoPullRemote"
+                  value={formData.autoPullRemote}
+                  onChange={(e) => handleInputChange('autoPullRemote', e.target.value)}
+                  placeholder="origin"
+                />
+                <small>Remote repository to pull from</small>
+              </div>
+            )}
 
             <div className="form-group">
               <label htmlFor="protection">Branch Protection</label>

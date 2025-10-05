@@ -193,23 +193,25 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
         },
       }));
 
-      const flowEdges = workflow.operations.map((operation) => ({
-        id: operation.id,
-        source: operation.source,
-        target: operation.target,
-        type: 'operation',
-        data: {
-          operationType: operation.type,
-          params: operation.params,
-          status: 'pending',
-        },
-        label: operationTypes[operation.type]?.label || operation.type,
-        labelStyle: { 
-          fill: operationTypes[operation.type]?.color || '#333',
-          fontWeight: 600 
-        },
-        labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
-      }));
+      const flowEdges = workflow.operations
+        .filter(operation => !operation.id.startsWith('auto-pull-')) // Filter out auto-pull operations
+        .map((operation) => ({
+          id: operation.id,
+          source: operation.source,
+          target: operation.target,
+          type: 'operation',
+          data: {
+            operationType: operation.type,
+            params: operation.params,
+            status: 'pending',
+          },
+          label: operationTypes[operation.type]?.label || operation.type,
+          labelStyle: { 
+            fill: operationTypes[operation.type]?.color || '#333',
+            fontWeight: 600 
+          },
+          labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
+        }));
 
       setNodes(flowNodes);
       setEdges(flowEdges);
@@ -920,6 +922,14 @@ function ProductionBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.autoPull && (
+        <div className="auto-pull-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
+              l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -948,6 +958,14 @@ function FeatureBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.autoPull && (
+        <div className="auto-pull-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
+              l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -976,6 +994,14 @@ function ReleaseBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.autoPull && (
+        <div className="auto-pull-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
+              l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1004,6 +1030,14 @@ function HotfixBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.autoPull && (
+        <div className="auto-pull-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
+              l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1032,6 +1066,14 @@ function DevelopBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.autoPull && (
+        <div className="auto-pull-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
+              l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1060,6 +1102,14 @@ function StagingBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.autoPull && (
+        <div className="auto-pull-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
+              l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1088,6 +1138,14 @@ function IntegrationBranchNode({ data, selected }) {
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && <div className="remote-indicator">🌐</div>}
+      {data.autoPull && (
+        <div className="auto-pull-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
+              l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
