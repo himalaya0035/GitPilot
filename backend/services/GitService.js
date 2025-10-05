@@ -299,30 +299,41 @@ class GitService {
     }
     
     let command = 'git push';
+    
+    // Add force options
     if (forceType === 'forceWithLease') {
       command += ' --force-with-lease';
     } else if (forceType === 'force') {
       command += ' --force';
     }
+    
+    // Add upstream flag
     if (upstream) {
       command += ' --set-upstream';
     }
     
-    // Handle target branch if provided
+    // Handle target branch logic
     if (target && target.trim() !== '') {
-      // Validate target branch exists
-      const targetExists = await this.checkBranchExists(target);
-      if (!targetExists) {
-        return {
-          success: false,
-          error: `Target branch '${target}' does not exist`,
-          stdout: '',
-          stderr: `fatal: branch '${target}' not found`,
-          command: `git push ${remote} ${source}:${target}`
-        };
+      // For upstream pushes with target, we're creating a new remote branch
+      // No need to validate target exists - it will be created
+      if (upstream) {
+        command += ` ${remote} ${source}:${target}`;
+      } else {
+        // For non-upstream pushes with target, validate target exists
+        const targetExists = await this.checkBranchExists(target);
+        if (!targetExists) {
+          return {
+            success: false,
+            error: `Target branch '${target}' does not exist`,
+            stdout: '',
+            stderr: `fatal: branch '${target}' not found`,
+            command: `git push ${remote} ${source}:${target}`
+          };
+        }
+        command += ` ${remote} ${source}:${target}`;
       }
-      command += ` ${remote} ${source}:${target}`;
     } else {
+      // No target specified - push to same branch name on remote
       command += ` ${remote} ${source}`;
     }
 
@@ -335,16 +346,58 @@ class GitService {
   async pull(source, target, params = {}) {
     const { rebase = false, remote = 'origin' } = params;
     
-    // First checkout target branch
-    const checkoutResult = await this.checkout(null, target);
-    if (!checkoutResult.success) {
-      return checkoutResult;
+    // Validate parameters
+    if (!source || source.trim() === '') {
+      return {
+        success: false,
+        error: 'Source branch (remote) is required for pull operations',
+        stdout: '',
+        stderr: 'fatal: source branch not specified',
+        command: 'git pull'
+      };
     }
-
+    
+    if (!target || target.trim() === '') {
+      return {
+        success: false,
+        error: 'Target branch (local) is required for pull operations',
+        stdout: '',
+        stderr: 'fatal: target branch not specified',
+        command: 'git pull'
+      };
+    }
+    
+    // Check if target branch exists locally
+    const targetExists = await this.checkBranchExists(target);
+    if (!targetExists) {
+      return {
+        success: false,
+        error: `Target branch '${target}' does not exist locally`,
+        stdout: '',
+        stderr: `fatal: branch '${target}' not found`,
+        command: `git pull ${remote} ${source}`
+      };
+    }
+    
+    // Check if we're already on the target branch
+    const currentBranch = await this.getCurrentBranch();
+    const needsCheckout = currentBranch?.stdout !== target;
+    
+    // Checkout target branch if we're not already on it
+    if (needsCheckout) {
+      const checkoutResult = await this.checkout(null, target);
+      if (!checkoutResult.success) {
+        return checkoutResult;
+      }
+    }
+    
+    // Build pull command
     let command = 'git pull';
     if (rebase) {
       command += ' --rebase';
     }
+    
+    // Since we're already on the target branch, just pull from source
     command += ` ${remote} ${source}`;
 
     return await this.executeGitCommand(command);
