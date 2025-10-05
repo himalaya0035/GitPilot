@@ -310,12 +310,13 @@
   border-color: #7c3aed;
 }
 
-.delete-button {
+.copy-paste-controls .delete-button {
   border-color: #ef4444;
   color: #ef4444;
+  background: white;
 }
 
-.delete-button:hover:not(:disabled) {
+.copy-paste-controls .delete-button:hover:not(:disabled) {
   background: #fef2f2;
   border-color: #dc2626;
 }

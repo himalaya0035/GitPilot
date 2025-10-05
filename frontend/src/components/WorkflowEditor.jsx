@@ -588,7 +588,6 @@ function WorkflowEditor({ onWorkflowCreated }) {
     try {
       setIsSaving(true);
       const workflow = {
-        id: sanitizeWorkflowName(workflowName),
         name: workflowName.trim(),
         branches: nodes.map((node) => ({
           id: node.id,
@@ -740,7 +739,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
     }
 
     const workflow = {
-      id: sanitizeWorkflowName(workflowName),
+      id: sanitizeWorkflowName(workflowName), // Keep for export filename
       name: workflowName.trim(),
       branches: nodes.map((node) => ({
         id: node.id,

@@ -32,12 +32,12 @@ const operationConfigs = {
       { name: 'strategy', label: 'Merge Strategy', type: 'select', options: [
         { value: 'standard', label: 'Standard Merge' },
         { value: 'squash', label: 'Squash Merge' },
-      ] },
+      ], default: 'standard' },
       { name: 'ffOption', label: 'Fast Forward Option', type: 'select', options: [
         { value: 'auto', label: 'Auto (Default)' },
         { value: 'no-ff', label: 'No Fast Forward' },
         { value: 'ff-only', label: 'Fast Forward Only' },
-      ], conditional: 'standard' },
+      ], conditional: 'standard', default: 'auto' },
     ],
     getDynamicDescription: (formData) => {
       if (formData.strategy === 'squash') {
@@ -93,8 +93,8 @@ const operationConfigs = {
     icon: '⬇️',
     description: 'Pull changes from remote repository',
     fields: [
-      { name: 'rebase', label: 'Pull with Rebase', type: 'checkbox', default: false },
       { name: 'remote', label: 'Remote Name', type: 'text', placeholder: 'origin', default: 'origin' },
+      { name: 'rebase', label: 'Pull with Rebase', type: 'checkbox', default: false },
     ]
   },
   'delete-branch': {

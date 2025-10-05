@@ -456,15 +456,3 @@
   border-color: #2563eb;
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }
-
-.delete-button {
-  background: #ef4444;
-  color: white;
-  border-color: #ef4444;
-}
-
-.delete-button:hover {
-  background: #dc2626;
-  border-color: #dc2626;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-}
