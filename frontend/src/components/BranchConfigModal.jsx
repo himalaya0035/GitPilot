@@ -59,6 +59,8 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
       branchName: branch.data.branchName || '',
       autoPull: branch.data.autoPull || false,
       autoPullRemote: branch.data.autoPullRemote || 'origin',
+      autoPush: branch.data.autoPush || false,
+      autoPushRemote: branch.data.autoPushRemote || 'origin',
       protection: branch.data.protection || config.defaultProtection,
       description: branch.data.description || '',
     });
@@ -131,37 +133,62 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Optional description of this branch's purpose"
-                rows="3"
+                rows="1"
               />
             </div>
 
 
             <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={formData.autoPull}
-                  onChange={(e) => handleInputChange('autoPull', e.target.checked)}
-                />
-                <span className="checkmark"></span>
-                Pull latest changes from remote
+              <div className="checkbox-with-input">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.autoPull}
+                    onChange={(e) => handleInputChange('autoPull', e.target.checked)}
+                  />
+                  <span className="checkmark"></span>
+                  Pull latest changes from remote
+                </label>
                 <small>Automatically create pull operation for this branch</small>
-              </label>
+                {formData.autoPull && (
+                  <div className="inline-input">
+                    <input
+                      type="text"
+                      value={formData.autoPullRemote}
+                      onChange={(e) => handleInputChange('autoPullRemote', e.target.value)}
+                      placeholder="origin"
+                    />
+                    <small>Pull remote</small>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {formData.autoPull && (
-              <div className="form-group">
-                <label htmlFor="autoPullRemote">Remote Name</label>
-                <input
-                  type="text"
-                  id="autoPullRemote"
-                  value={formData.autoPullRemote}
-                  onChange={(e) => handleInputChange('autoPullRemote', e.target.value)}
-                  placeholder="origin"
-                />
-                <small>Remote repository to pull from</small>
+            <div className="form-group">
+              <div className="checkbox-with-input">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.autoPush}
+                    onChange={(e) => handleInputChange('autoPush', e.target.checked)}
+                  />
+                  <span className="checkmark"></span>
+                  Push latest changes to remote
+                </label>
+                <small>Automatically create push operation for this branch</small>
+                {formData.autoPush && (
+                  <div className="inline-input">
+                    <input
+                      type="text"
+                      value={formData.autoPushRemote}
+                      onChange={(e) => handleInputChange('autoPushRemote', e.target.value)}
+                      placeholder="origin"
+                    />
+                    <small>Push remote</small>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             <div className="form-group">
               <label htmlFor="protection">Branch Protection</label>

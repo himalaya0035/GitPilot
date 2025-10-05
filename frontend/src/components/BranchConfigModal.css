@@ -127,7 +127,6 @@
 
 .form-group textarea {
   resize: vertical;
-  min-height: 80px;
 }
 
 .checkbox-label {
@@ -155,6 +154,33 @@
   color: #666;
   font-size: 12px;
   margin-top: 4px;
+}
+
+.checkbox-with-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inline-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.inline-input input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100%;
+  max-width: 200px;
+}
+
+.inline-input small {
+  color: #666;
+  font-size: 12px;
 }
 
 .modal-actions {

@@ -194,7 +194,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
       }));
 
       const flowEdges = workflow.operations
-        .filter(operation => !operation.id.startsWith('auto-pull-')) // Filter out auto-pull operations
+        .filter(operation => !operation.id.startsWith('auto-pull-') && !operation.id.startsWith('auto-push-')) // Filter out auto-pull and auto-push operations
         .map((operation) => ({
           id: operation.id,
           source: operation.source,
@@ -930,6 +930,14 @@ function ProductionBranchNode({ data, selected }) {
           </svg>
         </div>
       )}
+      {data.autoPush && (
+        <div className="auto-push-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
+              L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -963,6 +971,14 @@ function FeatureBranchNode({ data, selected }) {
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
               l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
+          </svg>
+        </div>
+      )}
+      {data.autoPush && (
+        <div className="auto-push-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
+              L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
           </svg>
         </div>
       )}
@@ -1002,6 +1018,14 @@ function ReleaseBranchNode({ data, selected }) {
           </svg>
         </div>
       )}
+      {data.autoPush && (
+        <div className="auto-push-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
+              L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1035,6 +1059,14 @@ function HotfixBranchNode({ data, selected }) {
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
               l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
+          </svg>
+        </div>
+      )}
+      {data.autoPush && (
+        <div className="auto-push-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
+              L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
           </svg>
         </div>
       )}
@@ -1074,6 +1106,14 @@ function DevelopBranchNode({ data, selected }) {
           </svg>
         </div>
       )}
+      {data.autoPush && (
+        <div className="auto-push-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
+              L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1110,6 +1150,14 @@ function StagingBranchNode({ data, selected }) {
           </svg>
         </div>
       )}
+      {data.autoPush && (
+        <div className="auto-push-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
+              L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
+          </svg>
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1143,6 +1191,14 @@ function IntegrationBranchNode({ data, selected }) {
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
               l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
+          </svg>
+        </div>
+      )}
+      {data.autoPush && (
+        <div className="auto-push-indicator">
+          <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
+            <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
+              L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
           </svg>
         </div>
       )}
