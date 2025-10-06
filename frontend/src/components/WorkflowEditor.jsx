@@ -1165,6 +1165,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
             <Controls />
             <MiniMap />
             <Background variant="dots" gap={12} size={1} />
+            <ArrowMarkers />
             {selectionBox && (
               <SelectionBox
                 x={selectionBox.x}
@@ -1594,6 +1595,43 @@ const branchNodeTypes = {
   integration: IntegrationBranchNode,
 };
 
+// Arrow Markers Component
+function ArrowMarkers() {
+  return (
+    <svg style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0, zIndex: -1 }}>
+      <defs>
+        {/* Arrow - Normal */}
+        <marker
+          id="arrow-normal"
+          markerWidth="10"
+          markerHeight="10"
+          refX="9"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+          viewBox="0 0 10 10"
+        >
+          <path d="M2,1 L6,3 L2,5 z" fill="#9ca3af" stroke="#9ca3af" strokeWidth="0.5" />
+        </marker>
+        
+        {/* Arrow - Selected */}
+        <marker
+          id="arrow-selected"
+          markerWidth="10"
+          markerHeight="10"
+          refX="9"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+          viewBox="0 0 10 10"
+        >
+          <path d="M2,1 L6,3 L2,5 z" fill="#3b82f6" stroke="#3b82f6" strokeWidth="0.5" />
+        </marker>
+      </defs>
+    </svg>
+  );
+}
+
 // Operation Edge Component
 function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected }) {
   const [edgePath, labelX, labelY] = getSmoothStepPath({
@@ -1700,15 +1738,22 @@ function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
     }
   };
 
+  // Get arrow marker ID based on selection state
+  const getArrowMarkerId = (selected) => {
+    return selected ? 'arrow-selected' : 'arrow-normal';
+  };
+
   const operationDisplay = getOperationDisplay(data.operationType, data.params);
+  const arrowMarkerId = getArrowMarkerId(selected);
 
   return (
     <>
       <BaseEdge 
         id={id} 
         path={edgePath} 
+        markerEnd={`url(#${arrowMarkerId})`}
         style={{ 
-          stroke: selected ? '#667eea' : '#d1d5db', 
+          stroke: selected ? '#667eea' : '#9ca3af', 
           strokeWidth: selected ? 3 : 2,
           strokeDasharray: data.operationType === 'checkout' && (data.params?.new || data.params?.reset) ? '5,5' : 'none'
         }} 
