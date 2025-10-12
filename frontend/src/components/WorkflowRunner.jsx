@@ -62,6 +62,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   const [previewMode, setPreviewMode] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [currentOperation, setCurrentOperation] = useState(null);
 
   // Load saved repositories from localStorage
   useEffect(() => {
@@ -105,16 +106,109 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     const handleOperationStarted = (data) => {
       addLogEntry(``, 'separator');
       addLogEntry(`Starting ${data.operationType} from ${data.source} to ${data.target}`, 'info');
+      setCurrentOperation(data);
+      
+      // Update edge status to running
+      console.log('🔧 Operation started:', data);
+      setEdges(prev => {
+        const updated = prev.map(edge => {
+          // Match by operation ID instead of source/target
+          const matches = edge.id === data.operationId;
+          if (matches) {
+            console.log('🎯 Found matching edge:', edge.id, 'updating to running');
+            return { ...edge, data: { ...edge.data, status: 'running' } };
+          }
+          return edge;
+        });
+        console.log('📊 Updated edges:', updated);
+        return updated;
+      });
+      
+      // Update node status for auto pull/push operations
+      if (data.operationType === 'pull' || data.operationType === 'push') {
+        setNodes(prev => prev.map(node => {
+          if (node.data.name === data.target) {
+            const updatedData = { ...node.data };
+            if (data.operationType === 'pull') {
+              updatedData.autoPullStatus = 'running';
+            } else if (data.operationType === 'push') {
+              updatedData.autoPushStatus = 'running';
+            }
+            return { ...node, data: updatedData };
+          }
+          return node;
+        }));
+      }
     };
 
     const handleOperationCompleted = (data) => {
       const message = `${data.operationType} completed successfully from ${data.source} to ${data.target}`;
       addLogEntry(message, 'success');
+      setCurrentOperation(null);
+      
+      // Update edge status to success
+      setEdges(prev => {
+        const updated = prev.map(edge => {
+          // Match by operation ID instead of source/target
+          const matches = edge.id === data.operationId;
+          if (matches) {
+            return { ...edge, data: { ...edge.data, status: 'success' } };
+          }
+          return edge;
+        });
+        return updated;
+      });
+      
+      // Update node status for auto pull/push operations
+      if (data.operationType === 'pull' || data.operationType === 'push') {
+        setNodes(prev => prev.map(node => {
+          if (node.data.name === data.target) {
+            const updatedData = { ...node.data };
+            if (data.operationType === 'pull') {
+              updatedData.autoPullStatus = 'success';
+            } else if (data.operationType === 'push') {
+              updatedData.autoPushStatus = 'success';
+            }
+            return { ...node, data: updatedData };
+          }
+          return node;
+        }));
+      }
     };
 
     const handleOperationFailed = (data) => {
       const message = `${data.operationType} failed from ${data.source} to ${data.target}: ${data.error}`;
       addLogEntry(message, 'error');
+      setCurrentOperation(null);
+      
+      // Update edge status to failed
+      setEdges(prev => {
+        const updated = prev.map(edge => {
+          // Match by operation ID instead of source/target
+          const matches = edge.id === data.operationId;
+          if (matches) {
+            return { ...edge, data: { ...edge.data, status: 'failed' } };
+          }
+          return edge;
+        });
+        return updated;
+      });
+      
+      // Update node status for auto pull/push operations
+      if (data.operationType === 'pull' || data.operationType === 'push') {
+        setNodes(prev => prev.map(node => {
+          if (node.data.name === data.target) {
+            const updatedData = { ...node.data };
+            if (data.operationType === 'pull') {
+              updatedData.autoPullStatus = 'failed';
+            } else if (data.operationType === 'push') {
+              updatedData.autoPushStatus = 'failed';
+            }
+            return { ...node, data: updatedData };
+          }
+          return node;
+        }));
+      }
     };
 
     const handleLogEntry = (data) => {
@@ -200,13 +294,51 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
       // Set repository path from workflow
       setRepositoryPath(workflow.repositoryPath || '');
       
+      // Check for auto-pull operations to determine which branches should have autoPull enabled
+      const autoPullBranches = new Set();
+      const autoPullRemotes = new Map();
+      workflow.operations
+        .filter(operation => operation.id.startsWith('auto-pull-'))
+        .forEach(operation => {
+          // Extract branch ID from auto-pull operation ID (format: auto-pull-{branchId})
+          const branchId = operation.id.replace('auto-pull-', '');
+          autoPullBranches.add(branchId);
+          // Extract remote name from operation parameters
+          if (operation.params && operation.params.remote) {
+            autoPullRemotes.set(branchId, operation.params.remote);
+          }
+        });
+
+      // Check for auto-push operations to determine which branches should have autoPush enabled
+      const autoPushBranches = new Set();
+      const autoPushRemotes = new Map();
+      workflow.operations
+        .filter(operation => operation.id.startsWith('auto-push-'))
+        .forEach(operation => {
+          // Extract branch ID from auto-push operation ID (format: auto-push-{branchId})
+          const branchId = operation.id.replace('auto-push-', '');
+          autoPushBranches.add(branchId);
+          // Extract remote name from operation parameters
+          if (operation.params && operation.params.remote) {
+            autoPushRemotes.set(branchId, operation.params.remote);
+          }
+        });
+      
       // Convert workflow to React Flow format
       const flowNodes = workflow.branches.map((branch, index) => ({
         id: branch.id,
         type: branch.type,
         position: branch.position || { x: index * 250, y: 100 },
         data: {
-          ...branch,
+          name: branch.name,
+          branchName: branch.name,
+          branchType: branch.type,
+          isRemote: branch.isRemote || false,
+          autoPull: branch.autoPull || autoPullBranches.has(branch.id),
+          autoPullRemote: branch.autoPullRemote || autoPullRemotes.get(branch.id) || 'origin',
+          autoPush: branch.autoPush || autoPushBranches.has(branch.id),
+          autoPushRemote: branch.autoPushRemote || autoPushRemotes.get(branch.id) || 'origin',
+          protection: branch.protection || 'none',
           status: 'pending',
         },
       }));
@@ -334,9 +466,9 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
       
       // Socket.IO events are already connected in useEffect above
       // Real-time updates will be handled automatically
+      // Note: isExecuting will be set to false by handleExecutionCompleted or handleExecutionFailed
     } catch (error) {
       addLogEntry(`Workflow execution failed: ${error.message}`, 'error');
-    } finally {
       setIsExecuting(false);
     }
   };
@@ -753,6 +885,23 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
                        </div>
                      );
                    })}
+                   
+                   {/* Processing indicator */}
+                   {currentOperation && isExecuting && (
+                     <div className="log-entry processing">
+                       <div className="log-content">
+                         <div className="log-message">
+                           Executing {currentOperation.operationType} operation
+                           <span className="processing-dots">
+                             <span>.</span>
+                             <span>.</span>
+                             <span>.</span>
+                           </span>
+                         </div>
+                       </div>
+                       <div className="log-time">{new Date().toLocaleTimeString()}</div>
+                     </div>
+                   )}
                 </div>
               )}
             </div>
@@ -955,7 +1104,7 @@ function ProductionBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPull && (
-        <div className="auto-pull-indicator">
+        <div className={`auto-pull-indicator ${data.autoPullStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
               l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
@@ -963,7 +1112,7 @@ function ProductionBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPush && (
-        <div className="auto-push-indicator">
+        <div className={`auto-push-indicator ${data.autoPushStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
               L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
@@ -1005,7 +1154,7 @@ function FeatureBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPull && (
-        <div className="auto-pull-indicator">
+        <div className={`auto-pull-indicator ${data.autoPullStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
               l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
@@ -1013,7 +1162,7 @@ function FeatureBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPush && (
-        <div className="auto-push-indicator">
+        <div className={`auto-push-indicator ${data.autoPushStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
               L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
@@ -1055,7 +1204,7 @@ function ReleaseBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPull && (
-        <div className="auto-pull-indicator">
+        <div className={`auto-pull-indicator ${data.autoPullStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
               l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
@@ -1063,7 +1212,7 @@ function ReleaseBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPush && (
-        <div className="auto-push-indicator">
+        <div className={`auto-push-indicator ${data.autoPushStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
               L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
@@ -1105,7 +1254,7 @@ function HotfixBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPull && (
-        <div className="auto-pull-indicator">
+        <div className={`auto-pull-indicator ${data.autoPullStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
               l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
@@ -1113,7 +1262,7 @@ function HotfixBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPush && (
-        <div className="auto-push-indicator">
+        <div className={`auto-push-indicator ${data.autoPushStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
               L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
@@ -1155,7 +1304,7 @@ function DevelopBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPull && (
-        <div className="auto-pull-indicator">
+        <div className={`auto-pull-indicator ${data.autoPullStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
               l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
@@ -1163,7 +1312,7 @@ function DevelopBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPush && (
-        <div className="auto-push-indicator">
+        <div className={`auto-push-indicator ${data.autoPushStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
               L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
@@ -1205,7 +1354,7 @@ function StagingBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPull && (
-        <div className="auto-pull-indicator">
+        <div className={`auto-pull-indicator ${data.autoPullStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
               l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
@@ -1213,7 +1362,7 @@ function StagingBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPush && (
-        <div className="auto-push-indicator">
+        <div className={`auto-push-indicator ${data.autoPushStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
               L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
@@ -1255,7 +1404,7 @@ function IntegrationBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPull && (
-        <div className="auto-pull-indicator">
+        <div className={`auto-pull-indicator ${data.autoPullStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M29.994,10.183L15.363,24.812L0.733,10.184c-0.977-0.978-0.977-2.561,0-3.536c0.977-0.977,2.559-0.976,3.536,0
               l11.095,11.093L26.461,6.647c0.977-0.976,2.559-0.976,3.535,0C30.971,7.624,30.971,9.206,29.994,10.183z"/>
@@ -1263,7 +1412,7 @@ function IntegrationBranchNode({ data, selected }) {
         </div>
       )}
       {data.autoPush && (
-        <div className="auto-push-indicator">
+        <div className={`auto-push-indicator ${data.autoPushStatus || ''}`}>
           <svg width="12" height="12" viewBox="0 0 30.727 30.727" fill="currentColor">
             <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
               L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
@@ -1295,7 +1444,7 @@ const branchNodeTypes = {
 // Arrow Markers Component - Using ReactFlow's marker system
 function ArrowMarkers() {
   return (
-    <svg style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0 }}>
+    <svg style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0, zIndex: -1 }}>
       <defs>
         {/* Arrow - Normal */}
         <marker
@@ -1306,6 +1455,7 @@ function ArrowMarkers() {
           refY="3"
           orient="auto"
           markerUnits="strokeWidth"
+          viewBox="0 0 10 10"
         >
           <path d="M2,1 L6,3 L2,5 z" fill="#9ca3af" stroke="#9ca3af" strokeWidth="0.5" />
         </marker>
@@ -1319,8 +1469,51 @@ function ArrowMarkers() {
           refY="3"
           orient="auto"
           markerUnits="strokeWidth"
+          viewBox="0 0 10 10"
         >
           <path d="M2,1 L6,3 L2,5 z" fill="#3b82f6" stroke="#3b82f6" strokeWidth="0.5" />
+        </marker>
+        
+        {/* Arrow - Running */}
+        <marker
+          id="arrow-running"
+          markerWidth="10"
+          markerHeight="10"
+          refX="9"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+          viewBox="0 0 10 10"
+        >
+          <path d="M2,1 L6,3 L2,5 z" fill="#17a2b8" stroke="#17a2b8" strokeWidth="0.5" />
+        </marker>
+        
+        {/* Arrow - Success */}
+        <marker
+          id="arrow-success"
+          markerWidth="10"
+          markerHeight="10"
+          refX="9"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+          viewBox="0 0 10 10"
+        >
+          <path d="M2,1 L6,3 L2,5 z" fill="#28a745" stroke="#28a745" strokeWidth="0.5" />
+        </marker>
+        
+        {/* Arrow - Failed */}
+        <marker
+          id="arrow-failed"
+          markerWidth="10"
+          markerHeight="10"
+          refX="9"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+          viewBox="0 0 10 10"
+        >
+          <path d="M2,1 L6,3 L2,5 z" fill="#dc3545" stroke="#dc3545" strokeWidth="0.5" />
         </marker>
       </defs>
     </svg>
@@ -1433,13 +1626,86 @@ function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
     }
   };
 
-  // Get arrow marker ID based on selection state
-  const getArrowMarkerId = (selected) => {
-    return selected ? 'arrow-selected' : 'arrow-normal';
+  // Get arrow marker ID based on status and selection state
+  const getArrowMarkerId = (status, selected) => {
+    if (selected) return 'arrow-selected';
+    
+    switch (status) {
+      case 'running':
+        return 'arrow-running';
+      case 'success':
+        return 'arrow-success';
+      case 'failed':
+        return 'arrow-failed';
+      default: // pending
+        return 'arrow-normal';
+    }
   };
 
   const operationDisplay = getOperationDisplay(data.operationType, data.params);
-  const arrowMarkerId = getArrowMarkerId(selected);
+  const arrowMarkerId = getArrowMarkerId(data.status, selected);
+
+  // Get status-based styling
+  const getStatusStyling = (status) => {
+    switch (status) {
+      case 'running':
+        return {
+          stroke: '#17a2b8',
+          strokeWidth: 3,
+          strokeDasharray: 'none'
+        };
+      case 'success':
+        return {
+          stroke: '#28a745',
+          strokeWidth: 3,
+          strokeDasharray: 'none'
+        };
+      case 'failed':
+        return {
+          stroke: '#dc3545',
+          strokeWidth: 3,
+          strokeDasharray: 'none'
+        };
+      default: // pending
+        return {
+          stroke: selected ? '#667eea' : '#9ca3af',
+          strokeWidth: selected ? 3 : 2,
+          strokeDasharray: data.operationType === 'checkout' && (data.params?.new || data.params?.reset) ? '5,5' : 'none'
+        };
+    }
+  };
+
+  const getStatusLabelStyling = (status) => {
+    switch (status) {
+      case 'running':
+        return {
+          background: '#f7fcfd',
+          border: '1px solid #17a2b8',
+          color: '#0c5460'
+        };
+      case 'success':
+        return {
+          background: '#f8fff9',
+          border: '1px solid #28a745',
+          color: '#155724'
+        };
+      case 'failed':
+        return {
+          background: '#fef2f2',
+          border: '1px solid #dc3545',
+          color: '#721c24'
+        };
+      default: // pending
+        return {
+          background: operationDisplay.bgColor,
+          border: `1px solid ${operationDisplay.color}`,
+          color: operationDisplay.color
+        };
+    }
+  };
+
+  const statusStyling = getStatusStyling(data.status);
+  const labelStyling = getStatusLabelStyling(data.status);
 
   return (
     <>
@@ -1447,29 +1713,24 @@ function OperationEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
         id={id} 
         path={edgePath} 
         markerEnd={`url(#${arrowMarkerId})`}
-        style={{ 
-          stroke: selected ? '#667eea' : '#9ca3af', 
-          strokeWidth: selected ? 3 : 2,
-          strokeDasharray: data.operationType === 'checkout' && (data.params?.new || data.params?.reset) ? '5,5' : 'none'
-        }} 
+        style={statusStyling}
+        className={`operation-edge operation-edge-${data.status}`}
       />
       <EdgeLabelRenderer>
         <div
           style={{
             position: 'absolute',
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-            background: operationDisplay.bgColor,
             padding: '6px 12px',
             borderRadius: '8px',
             fontSize: '11px',
             fontWeight: 600,
-            border: `1px solid ${operationDisplay.color}`,
-            color: operationDisplay.color,
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             whiteSpace: 'nowrap',
             letterSpacing: '0.3px',
+            ...labelStyling
           }}
-          className="nodrag nopan"
+          className={`nodrag nopan operation-label operation-label-${data.status}`}
         >
           {operationDisplay.text}
         </div>
