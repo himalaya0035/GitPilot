@@ -120,38 +120,87 @@ class WorkflowExecutor {
     operations.forEach(op => {
       operations.forEach(otherOp => {
         if (op.id === otherOp.id) return;
-  
-        // 1. Any operation that uses a branch created by a checkout depends on that checkout
-        if (otherOp.type === 'checkout' && (op.source === otherOp.target || op.target === otherOp.target)) {
-          dependencies.get(op.id).push(otherOp.id);
-          dependents.get(otherOp.id).push(op.id);
-        }
-  
-        // 2. Merge operation depends on all operations that modify its target branch
-        //    EXCEPT merges that target the same branch independently
-        if (
-          op.type === 'merge' &&
-          otherOp.target === op.target &&
-          // only include merges that are NOT independent
-          otherOp.type === 'checkout'
-        ) {
-          if (!dependencies.get(op.id).includes(otherOp.id)) {
-            dependencies.get(op.id).push(otherOp.id);
-            dependents.get(otherOp.id).push(op.id);
+        
+        // Helper function to add dependency
+        const addDependency = (dependent, dependency) => {
+          if (!dependencies.get(dependent).includes(dependency)) {
+            dependencies.get(dependent).push(dependency);
+            dependents.get(dependency).push(dependent);
           }
+        };
+        
+        // Rule 1: Branch Creation Dependencies
+        // Operations using a branch depend on checkout operations that created it
+        if (this.isBranchCreation(otherOp) && this.usesBranch(op, otherOp.target)) {
+          addDependency(op.id, otherOp.id);
         }
-  
-        // 3. Merge operation depends on all operations that modify its source branch
-        if (op.type === 'merge' && otherOp.target === op.source) {
-          if (!dependencies.get(op.id).includes(otherOp.id)) {
-            dependencies.get(op.id).push(otherOp.id);
-            dependents.get(otherOp.id).push(op.id);
-          }
+        
+        // Rule 2: REMOVED - Multiple merges to same target are independent
+        // Multiple merge/rebase/pull operations targeting the same branch are independent
+        // They only become dependent through other rules (branch creation, read-after-write, etc.)
+        
+        // Rule 3: Read-After-Write Dependencies
+        // Operations reading from a branch depend on operations that modified it
+        if (this.readsFromBranch(op, otherOp.target) && this.modifiesBranch(otherOp)) {
+          addDependency(op.id, otherOp.id);
+        }
+        
+        // Rule 4: Push Dependencies
+        // Push must come after ALL operations affecting the pushed branch
+        if (op.type === 'push' && this.affectsBranch(otherOp, op.source)) {
+          addDependency(op.id, otherOp.id);
+        }
+        
+        // Rule 5: Pull Before Push
+        // If pull and push on same branch, pull should come first
+        if (op.type === 'push' && otherOp.type === 'pull' && 
+            otherOp.target === op.source) {
+          addDependency(op.id, otherOp.id);
         }
       });
     });
   
     return { dependencies, dependents };
+  }
+  
+  /**
+   * Check if operation creates/resets a branch
+   */
+  isBranchCreation(operation) {
+    return operation.type === 'checkout' && 
+           (operation.params?.new === true || operation.params?.reset === true);
+  }
+  
+  /**
+   * Check if operation uses a specific branch (as source or target)
+   */
+  usesBranch(operation, branchId) {
+    return operation.source === branchId || operation.target === branchId;
+  }
+  
+  /**
+   * Check if operation modifies a branch (writes to it)
+   */
+  modifiesBranch(operation) {
+    // Operations that modify their target branch
+    return (operation.type === 'merge' || 
+            operation.type === 'rebase' || 
+            operation.type === 'pull' ||
+            (operation.type === 'checkout' && operation.params?.reset === true));
+  }
+  
+  /**
+   * Check if operation reads from a specific branch
+   */
+  readsFromBranch(operation, branchId) {
+    return operation.source === branchId;
+  }
+  
+  /**
+   * Check if operation affects a specific branch (either reads or writes)
+   */
+  affectsBranch(operation, branchId) {
+    return operation.source === branchId || operation.target === branchId;
   }
   
   
