@@ -398,6 +398,22 @@
   cursor: not-allowed;
 }
 
+.stop-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+  min-width: 150px;
+}
+
+.stop-button:hover {
+  background: #c82333;
+}
+
 .runner-content {
   display: flex;
   flex: 1;

@@ -82,8 +82,8 @@ class ExecutionService {
       this.emit('execution-failed', data);
     });
 
-    this.socket.on('execution-stopped', (data) => {
-      this.emit('execution-stopped', data);
+    this.socket.on('execution-aborted', (data) => {
+      this.emit('execution-aborted', data);
     });
 
     // Operation events

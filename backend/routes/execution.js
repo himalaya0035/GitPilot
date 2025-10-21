@@ -10,6 +10,9 @@ const GitService = require('../services/GitService');
 const WorkflowExecutor = require('../services/WorkflowExecutor');
 const WorkflowPreviewService = require('../services/WorkflowPreviewService');
 
+// Store active executors by executionId
+const activeExecutors = new Map();
+
 /**
  * POST /api/execution/:id/start
  * Start workflow execution
@@ -56,6 +59,9 @@ router.post('/:id/start', validateWorkflowId, validateRepositoryPath, async (req
     // Start execution in background
     const executionId = `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
+    // Store executor for potential stopping
+    activeExecutors.set(executionId, executor);
+    
     // Send initial response
     res.json({
       success: true,
@@ -72,9 +78,13 @@ router.post('/:id/start', validateWorkflowId, validateRepositoryPath, async (req
     executor.executeWorkflow(workflow, executionId)
       .then((result) => {
         console.log(`Workflow ${id} execution completed:`, result);
+        // Clean up executor reference
+        activeExecutors.delete(executionId);
       })
       .catch((error) => {
         console.error(`Workflow ${id} execution failed:`, error);
+        // Clean up executor reference
+        activeExecutors.delete(executionId);
       });
 
   } catch (error) {
@@ -146,13 +156,22 @@ router.get('/:id/status', validateWorkflowId, async (req, res, next) => {
 router.post('/:id/stop', validateWorkflowId, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const io = req.app.get('io');
     
-    // Emit stop signal via Socket.IO
-    io.emit('execution-stopped', {
-      executionId: id,
-      timestamp: new Date().toISOString()
-    });
+    // Get the executor for this execution
+    const executor = activeExecutors.get(id);
+    
+    if (!executor) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Execution not found or already completed' }
+      });
+    }
+    
+    // Stop the execution using the executor
+    executor.stopExecution(id);
+    
+    // Clean up executor reference
+    activeExecutors.delete(id);
 
     res.json({
       success: true,

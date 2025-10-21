@@ -18,6 +18,7 @@ class GitService {
     this.currentExecutionId = null;
     this.mockMode = mockMode;
     this.interceptedCommands = [];
+    this.currentProcess = null; // Track current child process for abortion
     
     // SECURITY: Prevent execution on GitPilot repository (skip in mock mode)
     if (!mockMode) {
@@ -32,6 +33,26 @@ class GitService {
     console.log(`🔧 Setting emit function for execution: ${executionId}`);
     this.emitUpdate = emitUpdate;
     this.currentExecutionId = executionId;
+  }
+
+  /**
+   * Abort the current running Git command
+   */
+  abortCurrentCommand() {
+    if (this.currentProcess) {
+      console.log(`🛑 Aborting current Git command: ${this.currentProcess.spawnargs?.join(' ') || 'unknown'}`);
+      try {
+        this.currentProcess.kill('SIGTERM');
+        console.log(`✅ Git command aborted successfully`);
+        return true;
+      } catch (error) {
+        console.error(`❌ Failed to abort Git command:`, error);
+        return false;
+      }
+    } else {
+      console.log(`ℹ️ No Git command currently running to abort`);
+      return false;
+    }
   }
 
   /**
@@ -81,8 +102,8 @@ class GitService {
       };
     }
     
-    // Normal execution (existing logic unchanged)
-    try {
+    // Normal execution with process tracking for abortion
+    return new Promise((resolve, reject) => {
       console.log(`Executing Git command: ${command}`);
       
       // Emit command before execution if emit function is set and not skipped
@@ -98,28 +119,34 @@ class GitService {
         console.log(`❌ Command emission failed - emitUpdate: ${!!this.emitUpdate}, executionId: ${this.currentExecutionId}`);
       }
       
-      const { stdout, stderr } = await execAsync(command, { 
+      // Store the child process reference for potential abortion
+      this.currentProcess = exec(command, { 
         cwd, 
         timeout,
         maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+      }, (error, stdout, stderr) => {
+        // Clear the process reference when command completes
+        this.currentProcess = null;
+        
+        if (error) {
+          console.error(`Git command failed: ${command}`, error);
+          resolve({
+            success: false,
+            error: error.message,
+            stdout: error.stdout || '',
+            stderr: error.stderr || '',
+            command
+          });
+        } else {
+          resolve({
+            success: true,
+            stdout: stdout.trim(),
+            stderr: stderr.trim(),
+            command
+          });
+        }
       });
-      
-      return {
-        success: true,
-        stdout: stdout.trim(),
-        stderr: stderr.trim(),
-        command
-      };
-    } catch (error) {
-      console.error(`Git command failed: ${command}`, error);
-      return {
-        success: false,
-        error: error.message,
-        stdout: error.stdout || '',
-        stderr: error.stderr || '',
-        command
-      };
-    }
+    });
   }
 
   /**

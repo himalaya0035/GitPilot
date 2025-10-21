@@ -63,6 +63,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   const [previewData, setPreviewData] = useState(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [currentOperation, setCurrentOperation] = useState(null);
+  const [currentExecutionId, setCurrentExecutionId] = useState(null);
 
   // Load saved repositories from localStorage
   useEffect(() => {
@@ -101,6 +102,14 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     const handleExecutionFailed = (data) => {
       addLogEntry(`Workflow execution failed: ${data.error}`, 'error');
       setIsExecuting(false);
+    };
+
+    const handleExecutionStopped = (data) => {
+      // Use a more accurate message that doesn't claim the command was aborted
+      const message = data.message
+      addLogEntry(message, 'warning');
+      setIsExecuting(false);
+      setCurrentExecutionId(null);
     };
 
     const handleOperationStarted = (data) => {
@@ -224,6 +233,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     executionService.on('execution-started', handleExecutionStarted);
     executionService.on('execution-completed', handleExecutionCompleted);
     executionService.on('execution-failed', handleExecutionFailed);
+    executionService.on('execution-aborted', handleExecutionStopped);
     executionService.on('operation-started', handleOperationStarted);
     executionService.on('operation-completed', handleOperationCompleted);
     executionService.on('operation-failed', handleOperationFailed);
@@ -235,6 +245,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
       executionService.off('execution-started', handleExecutionStarted);
       executionService.off('execution-completed', handleExecutionCompleted);
       executionService.off('execution-failed', handleExecutionFailed);
+      executionService.off('execution-aborted', handleExecutionStopped);
       executionService.off('operation-started', handleOperationStarted);
       executionService.off('operation-completed', handleOperationCompleted);
       executionService.off('operation-failed', handleOperationFailed);
@@ -462,6 +473,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     try {
       // Start real execution
       const result = await executionService.startExecution(workflow.id, repositoryPath);
+      setCurrentExecutionId(result.executionId);
       addLogEntry(`Execution started with ID: ${result.executionId}`, 'info');
       
       // Socket.IO events are already connected in useEffect above
@@ -470,6 +482,18 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     } catch (error) {
       addLogEntry(`Workflow execution failed: ${error.message}`, 'error');
       setIsExecuting(false);
+    }
+  };
+
+  const stopExecution = async () => {
+    if (!currentExecutionId) return;
+    
+    try {
+      addLogEntry('Stopping workflow execution...', 'info');
+      await executionService.stopExecution(currentExecutionId);
+      // The execution-stopped event will handle UI updates
+    } catch (error) {
+      addLogEntry(`Failed to stop execution: ${error.message}`, 'error');
     }
   };
 
@@ -679,13 +703,22 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
               >
                 {isLoadingPreview ? 'Generating Preview...' : 'Preview Workflow'}
               </button>
-              <button 
-                onClick={executeWorkflow} 
-                disabled={isExecuting || !repositoryPath || repositoryPath.trim() === ''}
-                className="execute-button"
-              >
-                {isExecuting ? 'Executing...' : 'Execute Workflow'}
-              </button>
+              {!isExecuting ? (
+                <button 
+                  onClick={executeWorkflow} 
+                  disabled={!repositoryPath || repositoryPath.trim() === ''}
+                  className="execute-button"
+                >
+                  Execute Workflow
+                </button>
+              ) : (
+                <button 
+                  onClick={stopExecution} 
+                  className="stop-button"
+                >
+                  Abort Execution
+                </button>
+              )}
             </div>
           ) : (
             <div className="action-buttons">

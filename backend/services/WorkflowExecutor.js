@@ -8,6 +8,7 @@ class WorkflowExecutor {
     this.gitService = gitService;
     this.io = io;
     this.executions = new Map(); // Track active executions
+    this.abortedExecutions = new Set(); // Track aborted executions
   }
 
   /**
@@ -51,7 +52,6 @@ class WorkflowExecutor {
       // Mark execution as completed
       execution.status = 'completed';
       execution.endTime = new Date().toISOString();
-
       this.emitUpdate(executionId, 'execution-completed', {
         executionId,
         status: 'completed',
@@ -64,15 +64,28 @@ class WorkflowExecutor {
     } catch (error) {
       console.error(`Workflow execution failed: ${executionId}`, error);
       
-      execution.status = 'failed';
-      execution.endTime = new Date().toISOString();
-      execution.error = error.message;
+      // Check if execution was aborted
+      if (error.message === 'Execution Aborted') {
+        execution.status = 'stopped';
+        execution.endTime = new Date().toISOString();
+        execution.error = 'Workflow Execution stopped by user';
 
-      this.emitUpdate(executionId, 'execution-failed', {
-        executionId,
-        status: 'failed',
-        error: error.message
-      });
+        this.emitUpdate(executionId, 'execution-aborted', {
+          executionId,
+          status: 'stopped',
+          message: 'Workflow Execution Aborted by User'
+        });
+      } else {
+        execution.status = 'failed';
+        execution.endTime = new Date().toISOString();
+        execution.error = error.message;
+
+        this.emitUpdate(executionId, 'execution-failed', {
+          executionId,
+          status: 'failed',
+          error: error.message
+        });
+      }
 
       throw error;
     } finally {
@@ -102,6 +115,13 @@ class WorkflowExecutor {
         status: 'pending'
       });
     });
+  }
+
+  /**
+   * Check if execution should continue (not aborted)
+   */
+  shouldContinue(executionId) {
+    return !this.abortedExecutions.has(executionId);
   }
 
   /**
@@ -213,6 +233,12 @@ class WorkflowExecutor {
     const operationQueue = [...workflow.operations]; // Create a queue of all operations
 
     while (completed.size + failed.size < workflow.operations.length) {
+      // Check if execution was aborted before each iteration
+      if (!this.shouldContinue(execution.id)) {
+        console.log(`🛑 Execution aborted, stopping workflow execution`);
+        break;
+      }
+
       // Find operations that can be executed (no pending dependencies)
       const readyOperations = operationQueue.filter(op => {
         const deps = dependencies.get(op.id) || [];
@@ -236,6 +262,12 @@ class WorkflowExecutor {
       console.log(`🔄 Executing ${readyOperations.length} ready operations sequentially...`);
       
       for (const operation of readyOperations) {
+        // Check if execution was aborted before each operation
+        if (!this.shouldContinue(execution.id)) {
+          console.log(`🛑 Execution aborted, stopping operation execution`);
+          break;
+        }
+        
         console.log(`⚡ Executing operation: ${operation.id} (${operation.type})`);
         await this.executeOperation(operation, execution, workflow);
         
@@ -249,6 +281,11 @@ class WorkflowExecutor {
           console.log(`❌ Operation ${operation.id} failed`);
         }
       }
+    }
+
+    // Check if execution was aborted after the while loop
+    if (!this.shouldContinue(execution.id)) {
+      throw new Error('Execution Aborted');
     }
 
     // Only fail the workflow if ALL operations failed
@@ -450,11 +487,17 @@ class WorkflowExecutor {
   stopExecution(executionId) {
     const execution = this.executions.get(executionId);
     if (execution) {
-      execution.status = 'stopped';
-      this.emitUpdate(executionId, 'execution-stopped', {
-        executionId,
-        status: 'stopped'
-      });
+      console.log(`🛑 Stopping execution: ${executionId}`);
+      
+      // Mark execution as aborted
+      this.abortedExecutions.add(executionId);
+      
+      // Try to abort the current Git command
+      this.gitService.abortCurrentCommand();
+      
+      console.log(`✅ Execution ${executionId} stopped successfully`);
+    } else {
+      console.log(`⚠️ Execution ${executionId} not found or already completed`);
     }
   }
 }
