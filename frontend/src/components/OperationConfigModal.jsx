@@ -48,6 +48,7 @@ const operationConfigs = {
         { value: 'no-ff', label: 'No Fast Forward' },
         { value: 'ff-only', label: 'Fast Forward Only' },
       ], conditional: 'standard', default: 'auto' },
+      { name: 'commitMessage', label: 'Commit Message', type: 'text', placeholder: 'Optional: commit message for squash merge', conditional: 'squash' },
     ],
     getDynamicDescription: (formData) => {
       if (formData.strategy === 'squash') {

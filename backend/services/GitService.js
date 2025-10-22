@@ -258,6 +258,25 @@ class GitService {
     // Apply strategy flags
     if (strategy === 'squash') {
       command += ' --squash';
+      command += ` ${source}`;
+      
+      // Execute squash merge first
+      const squashResult = await this.executeGitCommand(command);
+      
+      if (!squashResult.success) {
+        return squashResult; // Return error, don't commit
+      }
+      
+      // Squash succeeded, now commit
+      const commitMsg = params.commitMessage || `Squash merge: Merge changes from ${source}`;
+      const commitCommand = `git commit -m "${commitMsg}"`;
+      const commitResult = await this.executeGitCommand(commitCommand);
+      
+      // Return combined result
+      return {
+        ...commitResult,
+        squashResult // Include original squash output
+      };
     } else if (strategy === 'standard') {
       if (ffOption === 'no-ff') {
         command += ' --no-ff';
@@ -265,9 +284,8 @@ class GitService {
         command += ' --ff-only';
       }
       // 'auto' doesn't add any flags
+      command += ` ${source}`;
     }
-    
-    command += ` ${source}`;
 
     return await this.executeGitCommand(command);
   }
