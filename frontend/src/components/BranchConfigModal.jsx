@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import { validateBranchName, sanitizeBranchName } from '../utils/validation';
+import TagManagementModal from './TagManagementModal';
 import './BranchConfigModal.css';
 import { 
   Factory, 
@@ -59,6 +60,7 @@ const branchTypeConfigs = {
 
 function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
   const [formData, setFormData] = useState({});
+  const [showTagModal, setShowTagModal] = useState(false);
   const config = branchTypeConfigs[branch.data.branchType];
   const { showWarning } = useNotification();
 
@@ -80,6 +82,22 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
       ...prev,
       [fieldName]: value
     }));
+  };
+
+  // Handle tag modal
+  const handleTagSave = (tagData) => {
+    const updatedBranch = {
+      ...branch,
+      data: {
+        ...branch.data,
+        tags: tagData.tags
+      }
+    };
+    onSave({
+      ...formData,
+      tags: tagData.tags
+    });
+    setShowTagModal(false);
   };
 
   const handleSubmit = (e) => {
@@ -213,6 +231,25 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
                 ))}
               </select>
             </div>
+
+            <div className="form-group">
+              <label>Tag Management</label>
+              <div className="tag-management-section">
+                <div className="tag-info">
+                  <span className="tag-count">
+                    {branch.data.tags?.length || 0} tag{(branch.data.tags?.length || 0) !== 1 ? 's' : ''} configured
+                  </span>
+                  <small>Manage Git tags for this branch</small>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setShowTagModal(true)}
+                  className="manage-tags-button"
+                >
+                  🏷️ Manage Tags
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="modal-actions">
@@ -230,6 +267,14 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
           </div>
         </form>
       </div>
+
+      {showTagModal && (
+        <TagManagementModal
+          branch={branch}
+          onSave={handleTagSave}
+          onCancel={() => setShowTagModal(false)}
+        />
+      )}
     </div>
   );
 }

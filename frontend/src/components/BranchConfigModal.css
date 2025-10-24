@@ -281,3 +281,51 @@
     flex: 1;
   }
 }
+
+/* Tag Management Section */
+.tag-management-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.tag-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tag-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.tag-info small {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.manage-tags-button {
+  background: #fd7e14;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.manage-tags-button:hover {
+  background: #ea580c;
+}

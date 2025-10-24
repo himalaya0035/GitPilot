@@ -177,6 +177,20 @@ class WorkflowExecutor {
             otherOp.target === op.source) {
           addDependency(op.id, otherOp.id);
         }
+        
+        // Rule 6: Tag Dependencies
+        // Tag operations depend on operations that modify the branch they're tagging
+        if (op.type === 'tag' && this.affectsBranch(otherOp, op.target)) {
+          // Tag operations should depend on:
+          // 1. Operations that modify the target branch (merge, rebase, pull, checkout with reset)
+          // 2. Checkout operations that create the target branch
+          // 3. Pull operations that update the target branch
+          if (this.modifiesBranch(otherOp) || 
+              (otherOp.type === 'checkout' && otherOp.target === op.target) ||
+              (otherOp.type === 'pull' && otherOp.target === op.target)) {
+            addDependency(op.id, otherOp.id);
+          }
+        }
       });
     });
   
@@ -366,7 +380,13 @@ class WorkflowExecutor {
           result = await this.gitService.deleteBranch(sourceName, targetName, operation.params);
           break;
         case 'tag':
-          result = await this.gitService.tag(sourceName, targetName, operation.params);
+          // For tag operations, we need to checkout the target branch first, then create the tag
+          const checkoutResult = await this.gitService.checkout(null, targetName, {});
+          if (checkoutResult.success) {
+            result = await this.gitService.tag(targetName, null, operation.params);
+          } else {
+            result = checkoutResult;
+          }
           break;
         default:
           throw new Error(`Unknown operation type: ${operation.type}`);
@@ -386,6 +406,7 @@ class WorkflowExecutor {
           result: result.stdout,
           command: result.command
         });
+
       } else {
         operationState.status = 'failed';
         this.updateBranchStatus(execution, operation.target, 'failed');
@@ -500,6 +521,7 @@ class WorkflowExecutor {
       console.log(`⚠️ Execution ${executionId} not found or already completed`);
     }
   }
+
 }
 
 module.exports = WorkflowExecutor;

@@ -36,7 +36,8 @@ import {
   FileText, 
   Target, 
   Trash2, 
-  Sparkles 
+  Sparkles,
+  Tag
 } from 'lucide-react';
 
 // Branch node types will be defined after component definitions
@@ -615,6 +616,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
           autoPushRemote: node.data.autoPushRemote || 'origin',
           protection: node.data.protection,
           position: node.position,
+          tags: node.data.tags || [],
         })),
         operations: [
           // Auto-generate pull operations for branches with autoPull enabled
@@ -637,6 +639,26 @@ function WorkflowEditor({ onWorkflowCreated }) {
               target: node.id,  // To remote branch (using branch ID)
               params: { remote: node.data.autoPushRemote || 'origin', upstream: true }
             })),
+          // Auto-generate tag operations for branches with tags
+          ...nodes
+            .filter(node => node.data.tags && node.data.tags.length > 0)
+            .flatMap(node => 
+              node.data.tags.map((tag, tagIndex) => ({
+                id: `auto-tag-${node.id}-${tagIndex}`,
+                type: 'tag',
+                source: node.id,  // Tag on branch (using branch ID)
+                target: node.id,  // Same as source
+                params: {
+                  action: tag.action,
+                  name: tag.tagName,
+                  message: tag.message,
+                  push: tag.pushToRemote,
+                  force: tag.forceCreate,
+                  deleteRemote: tag.deleteRemote,
+                  remote: tag.remote || 'origin'
+                }
+              }))
+            ),
           // User-defined operations
           ...edges.map((edge) => ({
             id: edge.id,
@@ -701,6 +723,35 @@ function WorkflowEditor({ onWorkflowCreated }) {
         }
       });
 
+    // Check for auto-tag operations to restore tags to branches
+    const branchTags = new Map();
+    workflow.operations
+      .filter(operation => operation.id.startsWith('auto-tag-'))
+      .forEach(operation => {
+        // Extract branch ID and tag index from auto-tag operation ID (format: auto-tag-{branchId}-{tagIndex})
+        const parts = operation.id.replace('auto-tag-', '').split('-');
+        const branchId = parts.slice(0, -1).join('-'); // Handle branch IDs with hyphens
+        const tagIndex = parseInt(parts[parts.length - 1]);
+        
+        if (!branchTags.has(branchId)) {
+          branchTags.set(branchId, []);
+        }
+        
+        // Create tag object from operation params
+        const tag = {
+          id: `tag-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          action: operation.params.action,
+          tagName: operation.params.name,
+          message: operation.params.message,
+          pushToRemote: operation.params.push,
+          forceCreate: operation.params.force || false,
+          deleteRemote: operation.params.deleteRemote,
+          remote: operation.params.remote || 'origin'
+        };
+        
+        branchTags.get(branchId).push(tag);
+      });
+
     // Convert workflow data to nodes and edges
     const loadedNodes = workflow.branches.map((branch) => ({
       id: branch.id,
@@ -715,11 +766,12 @@ function WorkflowEditor({ onWorkflowCreated }) {
         autoPush: branch.autoPush || autoPushBranches.has(branch.id),
         autoPushRemote: branch.autoPushRemote || autoPushRemotes.get(branch.id) || 'origin',
         protection: branch.protection || 'none',
+        tags: branchTags.get(branch.id) || branch.tags || [],
       },
     }));
 
     const loadedEdges = workflow.operations
-      .filter(operation => !operation.id.startsWith('auto-pull-') && !operation.id.startsWith('auto-push-')) // Filter out auto-pull and auto-push operations
+      .filter(operation => !operation.id.startsWith('auto-pull-') && !operation.id.startsWith('auto-push-') && !operation.id.startsWith('auto-tag-')) // Filter out auto-pull, auto-push, and auto-tag operations
       .map((operation) => ({
         id: operation.id,
         source: operation.source,
@@ -767,6 +819,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
         autoPushRemote: node.data.autoPushRemote || 'origin',
         protection: node.data.protection,
         position: node.position,
+        tags: node.data.tags || [],
       })),
       operations: [
         // Auto-generate pull operations for branches with autoPull enabled
@@ -789,6 +842,26 @@ function WorkflowEditor({ onWorkflowCreated }) {
             target: node.id,  // To remote branch (using branch ID)
             params: { remote: node.data.autoPushRemote || 'origin', upstream: true }
           })),
+        // Auto-generate tag operations for branches with tags
+        ...nodes
+          .filter(node => node.data.tags && node.data.tags.length > 0)
+          .flatMap(node => 
+            node.data.tags.map((tag, tagIndex) => ({
+              id: `auto-tag-${node.id}-${tagIndex}`,
+              type: 'tag',
+              source: node.id,  // Tag on branch (using branch ID)
+              target: node.id,  // Same as source
+              params: {
+                action: tag.action,
+                name: tag.tagName,
+                message: tag.message,
+                push: tag.pushToRemote,
+                force: tag.forceCreate,
+                deleteRemote: tag.deleteRemote,
+                remote: tag.remote || 'origin'
+              }
+            }))
+          ),
         // User-defined operations
         ...edges.map((edge) => ({
           id: edge.id,
@@ -1242,6 +1315,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
 
 // Branch Node Components
 function ProductionBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node production ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1256,6 +1331,12 @@ function ProductionBranchNode({ data, selected }) {
           <Factory size={16} />
         </div>
         <span className="branch-type">PROD</span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && (
@@ -1291,6 +1372,8 @@ function ProductionBranchNode({ data, selected }) {
 }
 
 function FeatureBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node feature ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1305,6 +1388,12 @@ function FeatureBranchNode({ data, selected }) {
           <Wrench size={16} />
         </div>
         <span className="branch-type">FEATURE</span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && (
@@ -1340,6 +1429,8 @@ function FeatureBranchNode({ data, selected }) {
 }
 
 function ReleaseBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node release ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1354,6 +1445,12 @@ function ReleaseBranchNode({ data, selected }) {
           <Rocket size={16} />
         </div>
         <span className="branch-type">RELEASE</span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && (
@@ -1389,6 +1486,8 @@ function ReleaseBranchNode({ data, selected }) {
 }
 
 function HotfixBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node hotfix ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1403,6 +1502,12 @@ function HotfixBranchNode({ data, selected }) {
           <AlertTriangle size={16} />
         </div>
         <span className="branch-type">HOTFIX</span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && (
@@ -1438,6 +1543,8 @@ function HotfixBranchNode({ data, selected }) {
 }
 
 function DevelopBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node develop ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1452,6 +1559,12 @@ function DevelopBranchNode({ data, selected }) {
           <Settings size={16} />
         </div>
         <span className="branch-type">DEVELOP</span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && (
@@ -1487,6 +1600,8 @@ function DevelopBranchNode({ data, selected }) {
 }
 
 function StagingBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node staging ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1501,6 +1616,12 @@ function StagingBranchNode({ data, selected }) {
           <TestTube size={16} />
         </div>
         <span className="branch-type">STAGING</span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && (
@@ -1536,6 +1657,8 @@ function StagingBranchNode({ data, selected }) {
 }
 
 function IntegrationBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node integration ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1550,6 +1673,12 @@ function IntegrationBranchNode({ data, selected }) {
           <Link size={16} />
         </div>
         <span className="branch-type">INTEGRATION</span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.branchName}</div>
       {data.isRemote && (

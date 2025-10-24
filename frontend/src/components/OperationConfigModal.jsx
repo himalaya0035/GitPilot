@@ -8,7 +8,6 @@ import {
   ArrowUp, 
   ArrowDown, 
   Trash2, 
-  Tag, 
   Settings 
 } from 'lucide-react';
 
@@ -115,16 +114,6 @@ const operationConfigs = {
     fields: [
       { name: 'remote', label: 'Delete Remote Branch', type: 'checkbox', default: false },
       { name: 'force', label: 'Force Delete', type: 'checkbox', default: false },
-    ]
-  },
-  tag: {
-    title: 'Tag Operation',
-    icon: <Tag size={20} />,
-    description: 'Create and push a Git tag',
-    fields: [
-      { name: 'tagName', label: 'Tag Name', type: 'text', placeholder: 'v1.0.0', required: true },
-      { name: 'message', label: 'Tag Message', type: 'text', placeholder: 'Release version 1.0.0' },
-      { name: 'push', label: 'Push Tag to Remote', type: 'checkbox', default: true },
     ]
   },
 };

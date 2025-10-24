@@ -471,8 +471,8 @@ class GitService {
   /**
    * Tag operation
    */
-  async tag(source, target, params = {}) {
-    const { name, message, push = false } = params;
+  async tag(branchName, target, params = {}) {
+    const { action = 'create', name, message, push = false, force = false, deleteRemote = false, remote = 'origin' } = params;
     
     if (!name) {
       return {
@@ -482,24 +482,54 @@ class GitService {
       };
     }
 
-    let command = 'git tag';
-    if (message) {
-      command += ` -a ${name} -m "${message}"`;
-    } else {
-      command += ` ${name}`;
-    }
+    switch (action) {
+      case 'create':
+        let command = 'git tag';
+        if (force) {
+          command += ' -f';
+        }
+        if (message) {
+          command += ` -a ${name} -m "${message}"`;
+        } else {
+          command += ` ${name}`;
+        }
 
-    const tagResult = await this.executeGitCommand(command);
-    
-    if (tagResult.success && push) {
-      const pushResult = await this.executeGitCommand(`git push origin ${name}`);
-      return {
-        ...tagResult,
-        pushResult
-      };
-    }
+        const tagResult = await this.executeGitCommand(command);
+        
+        if (tagResult.success && push) {
+          const pushCommand = force ? `git push -f ${remote} ${name}` : `git push ${remote} ${name}`;
+          const pushResult = await this.executeGitCommand(pushCommand);
+          return {
+            ...tagResult,
+            pushResult
+          };
+        }
 
-    return tagResult;
+        return tagResult;
+
+      case 'push':
+        const pushCommand = force ? `git push -f ${remote} ${name}` : `git push ${remote} ${name}`;
+        return await this.executeGitCommand(pushCommand);
+
+      case 'delete':
+        let deleteCommand = 'git tag -d';
+        if (deleteRemote) {
+          // Delete from remote first, then local
+          const remoteDeleteResult = await this.executeGitCommand(`git push ${remote} --delete ${name}`);
+          if (!remoteDeleteResult.success) {
+            return remoteDeleteResult;
+          }
+        }
+        deleteCommand += ` ${name}`;
+        return await this.executeGitCommand(deleteCommand);
+
+      default:
+        return {
+          success: false,
+          error: `Unknown tag action: ${action}`,
+          command: 'git tag'
+        };
+    }
   }
 
   /**

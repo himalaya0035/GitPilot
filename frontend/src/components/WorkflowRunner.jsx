@@ -32,7 +32,8 @@ import {
   Clipboard, 
   Search, 
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  Tag
 } from 'lucide-react';
 
 // Branch node types will be defined after component definitions
@@ -350,12 +351,13 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
           autoPush: branch.autoPush || autoPushBranches.has(branch.id),
           autoPushRemote: branch.autoPushRemote || autoPushRemotes.get(branch.id) || 'origin',
           protection: branch.protection || 'none',
+          tags: branch.tags || [],
           status: 'pending',
         },
       }));
 
       const flowEdges = workflow.operations
-        .filter(operation => !operation.id.startsWith('auto-pull-') && !operation.id.startsWith('auto-push-')) // Filter out auto-pull and auto-push operations
+        .filter(operation => !operation.id.startsWith('auto-pull-') && !operation.id.startsWith('auto-push-') && !operation.id.startsWith('auto-tag-')) // Filter out auto-pull, auto-push, and auto-tag operations
         .map((operation) => ({
           id: operation.id,
           source: operation.source,
@@ -1114,6 +1116,8 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
 
 // Branch Node Components with Status Indicators
 function ProductionBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node production status-${data.status} ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1128,7 +1132,12 @@ function ProductionBranchNode({ data, selected }) {
           <Factory size={16} />
         </div>
         <span className="branch-type">PROD</span>
-        <span className="status-indicator"></span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && (
@@ -1164,6 +1173,8 @@ function ProductionBranchNode({ data, selected }) {
 }
 
 function FeatureBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node feature status-${data.status} ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1178,7 +1189,12 @@ function FeatureBranchNode({ data, selected }) {
           <Wrench size={16} />
         </div>
         <span className="branch-type">FEATURE</span>
-        <span className="status-indicator"></span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && (
@@ -1214,6 +1230,8 @@ function FeatureBranchNode({ data, selected }) {
 }
 
 function ReleaseBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node release status-${data.status} ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1228,7 +1246,12 @@ function ReleaseBranchNode({ data, selected }) {
           <Rocket size={16} />
         </div>
         <span className="branch-type">RELEASE</span>
-        <span className="status-indicator"></span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && (
@@ -1264,6 +1287,8 @@ function ReleaseBranchNode({ data, selected }) {
 }
 
 function HotfixBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node hotfix status-${data.status} ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1278,7 +1303,12 @@ function HotfixBranchNode({ data, selected }) {
           <AlertTriangle size={16} />
         </div>
         <span className="branch-type">HOTFIX</span>
-        <span className="status-indicator"></span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && (
@@ -1314,6 +1344,8 @@ function HotfixBranchNode({ data, selected }) {
 }
 
 function DevelopBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node develop status-${data.status} ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1328,7 +1360,12 @@ function DevelopBranchNode({ data, selected }) {
           <Settings size={16} />
         </div>
         <span className="branch-type">DEVELOP</span>
-        <span className="status-indicator"></span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && (
@@ -1364,6 +1401,8 @@ function DevelopBranchNode({ data, selected }) {
 }
 
 function StagingBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node staging status-${data.status} ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1378,7 +1417,12 @@ function StagingBranchNode({ data, selected }) {
           <TestTube size={16} />
         </div>
         <span className="branch-type">STAGING</span>
-        <span className="status-indicator"></span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && (
@@ -1414,6 +1458,8 @@ function StagingBranchNode({ data, selected }) {
 }
 
 function IntegrationBranchNode({ data, selected }) {
+  const tagCount = data.tags?.length || 0;
+  
   return (
     <div className={`branch-node integration status-${data.status} ${selected ? 'selected' : ''}`}>
       <Handle
@@ -1428,7 +1474,12 @@ function IntegrationBranchNode({ data, selected }) {
           <Link size={16} />
         </div>
         <span className="branch-type">INTEGRATION</span>
-        <span className="status-indicator"></span>
+        {tagCount > 0 && (
+          <span className="tag-inline-badge">
+            <Tag size={10} />
+            {tagCount}
+          </span>
+        )}
       </div>
       <div className="branch-name">{data.name}</div>
       {data.isRemote && (

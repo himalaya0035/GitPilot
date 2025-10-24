@@ -815,6 +815,18 @@
   color: #6c757d;
 }
 
+.tag-inline-badge {
+  display: inline-block;
+  background: #ff6b35;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  gap:2px;
+}
+
 .branch-name {
   padding: 14px 18px;
   font-size: 15px;

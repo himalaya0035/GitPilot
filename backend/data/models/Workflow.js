@@ -24,6 +24,22 @@ const branchSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  autoPull: {
+    type: Boolean,
+    default: false
+  },
+  autoPullRemote: {
+    type: String,
+    default: 'origin'
+  },
+  autoPush: {
+    type: Boolean,
+    default: false
+  },
+  autoPushRemote: {
+    type: String,
+    default: 'origin'
+  },
   protection: {
     type: String,
     enum: ['none', 'moderate', 'strict'],
@@ -32,6 +48,10 @@ const branchSchema = new mongoose.Schema({
   position: {
     x: { type: Number, default: 0 },
     y: { type: Number, default: 0 }
+  },
+  tags: {
+    type: [mongoose.Schema.Types.Mixed],
+    default: []
   }
 }, { _id: false });
 
