@@ -4,7 +4,6 @@ import './OperationConfigModal.css';
 import { 
   Clipboard, 
   GitMerge, 
-  RotateCcw, 
   ArrowUp, 
   ArrowDown, 
   Trash2, 
@@ -63,15 +62,15 @@ const operationConfigs = {
       return 'Merge source branch into target branch';
     }
   },
-  rebase: {
-    title: 'Rebase Operation',
-    icon: <RotateCcw size={20} />,
-    description: 'Rebase current branch onto target branch',
-    fields: [
-      { name: 'interactive', label: 'Interactive Rebase', type: 'checkbox', default: false },
-      { name: 'onto', label: 'Rebase Onto', type: 'text', placeholder: 'Optional base branch' },
-    ]
-  },
+  // rebase: {
+  //   title: 'Rebase Operation',
+  //   icon: <RotateCcw size={20} />,
+  //   description: 'Rebase current branch onto target branch',
+  //   fields: [
+  //     { name: 'interactive', label: 'Interactive Rebase', type: 'checkbox', default: false },
+  //     { name: 'onto', label: 'Rebase Onto', type: 'text', placeholder: 'Optional base branch' },
+  //   ]
+  // },
   push: {
     title: 'Push Operation',
     icon: <ArrowUp size={20} />,
