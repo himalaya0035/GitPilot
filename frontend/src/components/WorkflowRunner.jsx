@@ -33,7 +33,8 @@ import {
   Search, 
   AlertCircle,
   ArrowLeft,
-  Tag
+  Tag,
+  Trash2
 } from 'lucide-react';
 
 // Branch node types will be defined after component definitions
@@ -335,6 +336,25 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
             autoPushRemotes.set(branchId, operation.params.remote);
           }
         });
+
+      // Check for auto-delete operations to restore deleteConfig to branches
+      const branchDeleteConfigs = new Map();
+      workflow.operations
+        .filter(operation => operation.id.startsWith('auto-delete-'))
+        .forEach(operation => {
+          // Extract branch ID from auto-delete operation ID (format: auto-delete-{branchId})
+          const branchId = operation.id.replace('auto-delete-', '');
+          
+          // Create deleteConfig object from operation params
+          const deleteConfig = {
+            enabled: true,
+            remote: operation.params.remote || false,
+            force: operation.params.force || false,
+            remoteName: operation.params.remoteName || 'origin'
+          };
+          
+          branchDeleteConfigs.set(branchId, deleteConfig);
+        });
       
       // Convert workflow to React Flow format
       const flowNodes = workflow.branches.map((branch, index) => ({
@@ -350,14 +370,14 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
           autoPullRemote: branch.autoPullRemote || autoPullRemotes.get(branch.id) || 'origin',
           autoPush: branch.autoPush || autoPushBranches.has(branch.id),
           autoPushRemote: branch.autoPushRemote || autoPushRemotes.get(branch.id) || 'origin',
-          protection: branch.protection || 'none',
+          deleteConfig: branchDeleteConfigs.get(branch.id) || branch.deleteConfig || { enabled: false, remote: false, force: false, remoteName: 'origin' },
           tags: branch.tags || [],
           status: 'pending',
         },
       }));
 
       const flowEdges = workflow.operations
-        .filter(operation => !operation.id.startsWith('auto-pull-') && !operation.id.startsWith('auto-push-') && !operation.id.startsWith('auto-tag-')) // Filter out auto-pull, auto-push, and auto-tag operations
+        .filter(operation => !operation.id.startsWith('auto-pull-') && !operation.id.startsWith('auto-push-') && !operation.id.startsWith('auto-tag-') && !operation.id.startsWith('auto-delete-')) // Filter out auto-pull, auto-push, auto-tag, and auto-delete operations
         .map((operation) => ({
           id: operation.id,
           source: operation.source,
@@ -1161,6 +1181,11 @@ function ProductionBranchNode({ data, selected }) {
           </svg>
         </div>
       )}
+      {data.deleteConfig?.enabled && (
+        <div className={`delete-branch-indicator ${data.deleteStatus || ''}`}>
+          <Trash2 size={12} />
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1216,6 +1241,11 @@ function FeatureBranchNode({ data, selected }) {
             <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
               L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
           </svg>
+        </div>
+      )}
+      {data.deleteConfig?.enabled && (
+        <div className={`delete-branch-indicator ${data.deleteStatus || ''}`}>
+          <Trash2 size={12} />
         </div>
       )}
       <Handle
@@ -1275,6 +1305,11 @@ function ReleaseBranchNode({ data, selected }) {
           </svg>
         </div>
       )}
+      {data.deleteConfig?.enabled && (
+        <div className={`delete-branch-indicator ${data.deleteStatus || ''}`}>
+          <Trash2 size={12} />
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1330,6 +1365,11 @@ function HotfixBranchNode({ data, selected }) {
             <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
               L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
           </svg>
+        </div>
+      )}
+      {data.deleteConfig?.enabled && (
+        <div className={`delete-branch-indicator ${data.deleteStatus || ''}`}>
+          <Trash2 size={12} />
         </div>
       )}
       <Handle
@@ -1389,6 +1429,11 @@ function DevelopBranchNode({ data, selected }) {
           </svg>
         </div>
       )}
+      {data.deleteConfig?.enabled && (
+        <div className={`delete-branch-indicator ${data.deleteStatus || ''}`}>
+          <Trash2 size={12} />
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1446,6 +1491,11 @@ function StagingBranchNode({ data, selected }) {
           </svg>
         </div>
       )}
+      {data.deleteConfig?.enabled && (
+        <div className={`delete-branch-indicator ${data.deleteStatus || ''}`}>
+          <Trash2 size={12} />
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Right}
@@ -1501,6 +1551,11 @@ function IntegrationBranchNode({ data, selected }) {
             <path d="M0.733,20.544L15.363,5.915L29.994,20.544c0.977,0.978,0.977,2.561,0,3.536c-0.977,0.977-2.559,0.976-3.536,0
               L15.363,13.387L4.269,24.08c-0.977,0.976-2.559,0.976-3.535,0C-0.243,23.105-0.243,21.522,0.733,20.544z"/>
           </svg>
+        </div>
+      )}
+      {data.deleteConfig?.enabled && (
+        <div className={`delete-branch-indicator ${data.deleteStatus || ''}`}>
+          <Trash2 size={12} />
         </div>
       )}
       <Handle

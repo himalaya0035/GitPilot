@@ -452,20 +452,36 @@ class GitService {
    * Delete branch operation
    */
   async deleteBranch(source, target, params = {}) {
-    const { remote = false, force = false } = params;
+    const { remote = false, force = false, remoteName = 'origin' } = params;
     
-    let command = 'git branch';
+    const results = [];
+    
+    // Always delete local branch first
+    let localCommand = 'git branch';
+    localCommand += force ? ' -D' : ' -d';
+    localCommand += ` ${source}`;
+    
+    const localResult = await this.executeGitCommand(localCommand);
+    results.push(localResult);
+    
+    // If remote delete is requested, also delete from remote
     if (remote) {
-      command = 'git push origin --delete';
-    } else {
-      command += ' -d';
-      if (force) {
-        command = command.replace('-d', '-D');
-      }
+      const remoteCommand = `git push ${remoteName} --delete ${source}`;
+      const remoteResult = await this.executeGitCommand(remoteCommand);
+      results.push(remoteResult);
     }
-    command += ` ${source}`;
-
-    return await this.executeGitCommand(command);
+    
+    // Return combined result - success only if all operations succeeded
+    const allSuccessful = results.every(result => result.success);
+    const lastResult = results[results.length - 1];
+    
+    return {
+      success: allSuccessful,
+      stdout: results.map(r => r.stdout).join('\n'),
+      stderr: results.map(r => r.stderr).join('\n'),
+      command: results.map(r => r.command).join(' && '),
+      results: results // Include individual results for debugging
+    };
   }
 
   /**
@@ -724,6 +740,9 @@ class GitService {
     if (command.includes('rebase')) {
       return 'Rebase branches';
     }
+    if (command.includes('push') && command.includes('--delete')) {
+      return 'Delete From Remote';
+    }
     if (command.includes('push --force')) {
       return 'Force push to remote';
     }
@@ -739,14 +758,26 @@ class GitService {
     if (command.includes('pull')) {
       return 'Pull from remote';
     }
+    if (command.includes('branch') && command.includes('-D')) {
+      return 'Delete Local (Force)';
+    }
+    if (command.includes('branch') && command.includes('-d')) {
+      return 'Delete Local';
+    }
     if (command.includes('delete')) {
       return 'Delete branch';
     }
+    if (command.includes('tag -d')) {
+      return 'Delete Local Tag';
+    }
+    if (command.includes('push') && command.includes('--delete') && command.includes('tag')) {
+      return 'Delete Remote Tag';
+    }
     if (command.includes('tag -a')) {
-      return 'Create annotated tag';
+      return 'Create Annotated Tag';
     }
     if (command.includes('tag')) {
-      return 'Create tag';
+      return 'Create Tag';
     }
     
     return 'Git operation';

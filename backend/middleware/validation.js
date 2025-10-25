@@ -90,11 +90,22 @@ const validateWorkflow = (req, res, next) => {
           error: { message: `Operation source branch '${operation.source}' not found in branches` }
         });
       }
-      if (!branchIds.has(operation.target)) {
-        return res.status(400).json({
-          success: false,
-          error: { message: `Operation target branch '${operation.target}' not found in branches` }
-        });
+      // For delete-branch operations, allow source === target (self-delete)
+      if (operation.type === 'delete-branch') {
+        if (operation.source !== operation.target) {
+          return res.status(400).json({
+            success: false,
+            error: { message: 'Delete-branch operations must have source === target (self-delete)' }
+          });
+        }
+      } else {
+        // For other operations, validate target exists
+        if (!branchIds.has(operation.target)) {
+          return res.status(400).json({
+            success: false,
+            error: { message: `Operation target branch '${operation.target}' not found in branches` }
+          });
+        }
       }
     }
 

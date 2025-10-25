@@ -166,8 +166,9 @@ class WorkflowExecutor {
         }
         
         // Rule 4: Push Dependencies
-        // Push must come after ALL operations affecting the pushed branch
-        if (op.type === 'push' && this.affectsBranch(otherOp, op.source)) {
+        // Push must come after ALL operations except delete operations affecting the pushed branch
+        // push should happen before delete
+        if (op.type === 'push' && this.affectsBranch(otherOp, op.source) && otherOp.type !== 'delete-branch') {
           addDependency(op.id, otherOp.id);
         }
         
@@ -188,6 +189,25 @@ class WorkflowExecutor {
           if (this.modifiesBranch(otherOp) || 
               (otherOp.type === 'checkout' && otherOp.target === op.target) ||
               (otherOp.type === 'pull' && otherOp.target === op.target)) {
+            addDependency(op.id, otherOp.id);
+          }
+        }
+        
+        // Rule 7: Delete Dependencies
+        // Delete operations must run AFTER all operations involving the deleted branch
+        if (op.type === 'delete-branch') {
+          // Delete depends on ALL operations that:
+          // 1. Create the branch (checkout)
+          // 2. Modify the branch (merge, rebase, pull)
+          // 3. Read from the branch (merge, rebase, push)
+          // 4. Tag the branch
+          // 5. Push the branch
+          // Basically: ANY operation that touches this branch
+          
+          const deletedBranchId = op.source; // The branch being deleted
+          
+          // Check if otherOp involves the branch being deleted
+          if (otherOp.id !== op.id && this.involvesBranch(otherOp, deletedBranchId)) {
             addDependency(op.id, otherOp.id);
           }
         }
@@ -235,6 +255,45 @@ class WorkflowExecutor {
    */
   affectsBranch(operation, branchId) {
     return operation.source === branchId || operation.target === branchId;
+  }
+  
+  /**
+   * Check if operation involves a specific branch
+   * (as source, target, or affects it in any way)
+   */
+  involvesBranch(operation, branchId) {
+    // Check source and target
+    if (operation.source === branchId || operation.target === branchId) {
+      return true;
+    }
+    
+    // Special cases by operation type
+    switch (operation.type) {
+      case 'checkout':
+        // Branch creation/switch involves target
+        return operation.target === branchId;
+      
+      case 'merge':
+      case 'rebase':
+        // Involves both source (reading from) and target (modifying)
+        return operation.source === branchId || operation.target === branchId;
+      
+      case 'push':
+      case 'pull':
+        // Push uses source, pull uses target
+        return operation.source === branchId || operation.target === branchId;
+      
+      case 'tag':
+        // Tags the target branch
+        return operation.target === branchId;
+      
+      case 'delete-branch':
+        // Delete operation targets the source
+        return operation.source === branchId;
+      
+      default:
+        return false;
+    }
   }
   
   

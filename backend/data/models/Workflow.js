@@ -40,11 +40,6 @@ const branchSchema = new mongoose.Schema({
     type: String,
     default: 'origin'
   },
-  protection: {
-    type: String,
-    enum: ['none', 'moderate', 'strict'],
-    default: 'none'
-  },
   position: {
     x: { type: Number, default: 0 },
     y: { type: Number, default: 0 }

@@ -17,44 +17,37 @@ const branchTypeConfigs = {
   production: {
     title: 'Production Branch Configuration',
     icon: <Factory size={20} />,
-    description: 'Main production branch',
-    defaultProtection: 'strict'
+    description: 'Main production branch'
   },
   feature: {
     title: 'Feature Branch Configuration',
     icon: <Wrench size={20} />,
-    description: 'Feature development branch',
-    defaultProtection: 'none'
+    description: 'Feature development branch'
   },
   release: {
     title: 'Release Branch Configuration',
     icon: <Rocket size={20} />,
-    description: 'Release preparation branch',
-    defaultProtection: 'moderate'
+    description: 'Release preparation branch'
   },
   hotfix: {
     title: 'Hotfix Branch Configuration',
     icon: <AlertTriangle size={20} />,
-    description: 'Critical bug fix branch',
-    defaultProtection: 'moderate'
+    description: 'Critical bug fix branch'
   },
   develop: {
     title: 'Develop Branch Configuration',
     icon: <Settings size={20} />,
-    description: 'Integration branch for features',
-    defaultProtection: 'moderate'
+    description: 'Integration branch for features'
   },
   staging: {
     title: 'Staging Branch Configuration',
     icon: <TestTube size={20} />,
-    description: 'Pre-production testing environment',
-    defaultProtection: 'moderate'
+    description: 'Pre-production testing environment'
   },
   integration: {
     title: 'Integration Branch Configuration',
     icon: <Link size={20} />,
-    description: 'Integration testing and validation branch',
-    defaultProtection: 'moderate'
+    description: 'Integration testing and validation branch'
   }
 };
 
@@ -72,7 +65,7 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
       autoPullRemote: branch.data.autoPullRemote || 'origin',
       autoPush: branch.data.autoPush || false,
       autoPushRemote: branch.data.autoPushRemote || 'origin',
-      protection: branch.data.protection || config.defaultProtection,
+      deleteConfig: branch.data.deleteConfig || { enabled: false, remote: false, force: false, remoteName: 'origin' },
       description: branch.data.description || '',
     });
   }, [branch, config]);
@@ -117,11 +110,6 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
     onSave(sanitizedData);
   };
 
-  const protectionOptions = [
-    { value: 'none', label: 'No Protection', description: 'No restrictions' },
-    { value: 'moderate', label: 'Moderate Protection', description: 'Require PR reviews' },
-    { value: 'strict', label: 'Strict Protection', description: 'Require PR reviews + status checks' },
-  ];
 
   return (
     <div className="modal-overlay">
@@ -218,18 +206,63 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
             </div>
 
             <div className="form-group">
-              <label htmlFor="protection">Branch Protection</label>
-              <select
-                id="protection"
-                value={formData.protection}
-                onChange={(e) => handleInputChange('protection', e.target.value)}
-              >
-                {protectionOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label} - {option.description}
-                  </option>
-                ))}
-              </select>
+              <div className="checkbox-with-input">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.deleteConfig?.enabled || false}
+                    onChange={(e) => handleInputChange('deleteConfig', { 
+                      ...formData.deleteConfig, 
+                      enabled: e.target.checked 
+                    })}
+                  />
+                  <span className="checkmark"></span>
+                  Delete this branch
+                </label>
+                 <small>Delete this branch after its operations</small>
+                {formData.deleteConfig?.enabled && (
+                  <div className="delete-options">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={formData.deleteConfig?.force || false}
+                        onChange={(e) => handleInputChange('deleteConfig', { 
+                          ...formData.deleteConfig, 
+                          force: e.target.checked 
+                        })}
+                      />
+                      <span className="checkmark"></span>
+                      Force delete
+                    </label>
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={formData.deleteConfig?.remote || false}
+                        onChange={(e) => handleInputChange('deleteConfig', { 
+                          ...formData.deleteConfig, 
+                          remote: e.target.checked 
+                        })}
+                      />
+                      <span className="checkmark"></span>
+                      Delete remote branch
+                    </label>
+                    {formData.deleteConfig?.remote && (
+                      <div className="inline-input">
+                         <input
+                           type="text"
+                           value={formData.deleteConfig?.remoteName || ''}
+                           onChange={(e) => handleInputChange('deleteConfig', { 
+                             ...formData.deleteConfig, 
+                             remoteName: e.target.value 
+                           })}
+                           placeholder="origin"
+                         />
+                        <small>Remote name</small>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="form-group">

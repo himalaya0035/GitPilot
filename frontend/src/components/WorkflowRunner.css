@@ -957,22 +957,50 @@
   height: 12px;
 }
 
-/* Auto pull/push indicator status animations */
+.delete-branch-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.delete-branch-indicator svg {
+  color: #dc3545;
+  width: 16px;
+  height: 16px;
+}
+
+/* Auto pull/push/delete indicator status animations */
 .auto-pull-indicator.running,
-.auto-push-indicator.running {
+.auto-push-indicator.running,
+.delete-branch-indicator.running {
   animation: indicator-pulse 1.5s ease-in-out infinite;
 }
 
 .auto-pull-indicator.success,
-.auto-push-indicator.success {
+.auto-push-indicator.success,
+.delete-branch-indicator.success {
   background: linear-gradient(135deg, #28a745, #1e7e34) !important;
   animation: none;
 }
 
 .auto-pull-indicator.failed,
-.auto-push-indicator.failed {
+.auto-push-indicator.failed,
+.delete-branch-indicator.failed {
   background: linear-gradient(135deg, #dc3545, #c82333) !important;
   animation: none;
+}
+
+.delete-branch-indicator.success svg {
+  color: #28a745 !important;
+}
+
+.delete-branch-indicator.failed svg {
+  color: #dc3545 !important;
 }
 
 @keyframes indicator-pulse {

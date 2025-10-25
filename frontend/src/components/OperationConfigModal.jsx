@@ -106,15 +106,6 @@ const operationConfigs = {
       { name: 'rebase', label: 'Pull with Rebase', type: 'checkbox', default: false },
     ]
   },
-  'delete-branch': {
-    title: 'Delete Branch Operation',
-    icon: <Trash2 size={20} />,
-    description: 'Delete a branch (local or remote)',
-    fields: [
-      { name: 'remote', label: 'Delete Remote Branch', type: 'checkbox', default: false },
-      { name: 'force', label: 'Force Delete', type: 'checkbox', default: false },
-    ]
-  },
 };
 
 function OperationConfigModal({ edge, onSave, onCancel, onDelete }) {
