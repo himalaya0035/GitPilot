@@ -15,7 +15,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import WorkflowManager from './WorkflowManager';
 import './WorkflowRunner.css';
-import { executionService } from '../services';
+import { executionService, workflowService, storageAdapter } from '../services';
 import { 
   Factory, 
   Wrench, 
@@ -79,6 +79,39 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
       }
     }
   }, []);
+
+  // Refresh workflow data from storage when component mounts or workflow ID changes
+  useEffect(() => {
+    const refreshWorkflow = async () => {
+      if (!workflow || !workflow.id) {
+        return;
+      }
+
+      try {
+        // Fetch the latest workflow data from storage
+        const refreshedWorkflow = await workflowService.getWorkflow(workflow.id);
+        if (refreshedWorkflow) {
+          // Preserve the current repository path if it exists
+          const currentRepoPath = repositoryPath;
+          
+          // Update the parent component's workflow state with the refreshed data
+          if (onWorkflowChange) {
+            onWorkflowChange(refreshedWorkflow);
+          }
+          
+          // Restore repository path if it was set
+          if (currentRepoPath) {
+            setRepositoryPath(currentRepoPath);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to refresh workflow data:', error);
+        // Don't show error to user as this is a background refresh
+      }
+    };
+
+    refreshWorkflow();
+  }, [workflow?.id, onWorkflowChange]); // Only run when workflow ID changes
 
   // Socket.IO connection setup
   useEffect(() => {
