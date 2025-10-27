@@ -217,6 +217,12 @@
   gap: 4px;
 }
 
+.clock-icon {
+  margin-right: 4px;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
 .workflow-actions {
   display: flex;
   gap: 8px;

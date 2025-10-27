@@ -23,17 +23,26 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(null);
   const [duplicateName, setDuplicateName] = useState('');
 
-  // Filter workflows based on search query
+  // Filter and sort workflows based on search query
   useEffect(() => {
+    let processedWorkflows = [...workflows];
+    
+    // Sort by updatedAt in descending order (most recently updated first)
+    processedWorkflows.sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.createdAt);
+      const dateB = new Date(b.updatedAt || b.createdAt);
+      return dateB - dateA; // Descending order
+    });
+    
+    // Apply search filter if query exists
     if (searchQuery.trim()) {
-      const filtered = workflows.filter(workflow =>
+      processedWorkflows = processedWorkflows.filter(workflow =>
         workflow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (workflow.description && workflow.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
-      setFilteredWorkflows(filtered);
-    } else {
-      setFilteredWorkflows(workflows);
     }
+    
+    setFilteredWorkflows(processedWorkflows);
   }, [workflows, searchQuery]);
 
   const handleLoadWorkflow = (workflow) => {
@@ -108,6 +117,15 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
     });
   };
 
+  const getDisplayDate = (workflow) => {
+    const updatedDate = workflow.updatedAt || workflow.createdAt;
+    return formatDate(updatedDate);
+  };
+
+  const isMostRecent = (workflow, index) => {
+    return index === 0;
+  };
+
 
   if (loading) {
     return (
@@ -177,7 +195,7 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
               </p>
             </div>
           ) : (
-            filteredWorkflows.map((workflow) => (
+            filteredWorkflows.map((workflow, index) => (
               <div
                 key={workflow.id}
                 className={`workflow-item ${selectedWorkflow?.id === workflow.id ? 'selected' : ''}`}
@@ -190,7 +208,10 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
                   </p>
                   <div className="workflow-meta">
                     <span className="created-date">
-                      {formatDate(workflow.createdAt)}
+                      {isMostRecent(workflow, index) && (
+                        <span className="clock-icon" title="Most recently used">🕒</span>
+                      )}
+                      {getDisplayDate(workflow)}
                     </span>
                   </div>
                 </div>
