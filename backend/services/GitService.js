@@ -782,6 +782,214 @@ class GitService {
     
     return 'Git operation';
   }
+
+  // ===== CONFLICT DETECTION AND CLEANUP METHODS =====
+  
+  /**
+   * Check if repository is in a conflicted state
+   */
+  async isInConflictState() {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Check for merge conflicts (unmerged files)
+      const unmergedFilesResult = await this.executeGitCommand('git ls-files -u', { 
+        skipEmission: true, 
+        allowExecutionInMockMode: true 
+      });
+      const hasUnmergedFiles = unmergedFilesResult.success && unmergedFilesResult.stdout.trim() !== '';
+      
+      // Check for merge in progress
+      const mergeHeadPath = path.join(this.workingDirectory, '.git', 'MERGE_HEAD');
+      const hasMergeInProgress = fs.existsSync(mergeHeadPath);
+      
+      // Check for rebase in progress
+      const rebaseMergePath = path.join(this.workingDirectory, '.git', 'rebase-merge');
+      const rebaseApplyPath = path.join(this.workingDirectory, '.git', 'rebase-apply');
+      const hasRebaseInProgress = fs.existsSync(rebaseMergePath) || fs.existsSync(rebaseApplyPath);
+      
+      // Check for cherry-pick in progress
+      const cherryPickHeadPath = path.join(this.workingDirectory, '.git', 'CHERRY_PICK_HEAD');
+      const hasCherryPickInProgress = fs.existsSync(cherryPickHeadPath);
+      
+      const isInConflict = hasUnmergedFiles || hasMergeInProgress || hasRebaseInProgress || hasCherryPickInProgress;
+      
+      return {
+        isInConflict,
+        hasUnmergedFiles,
+        hasMergeInProgress,
+        hasRebaseInProgress,
+        hasCherryPickInProgress,
+        conflictType: this.determineConflictType(hasMergeInProgress, hasRebaseInProgress, hasCherryPickInProgress)
+      };
+    } catch (error) {
+      console.error('Error checking conflict state:', error);
+      return {
+        isInConflict: false,
+        hasUnmergedFiles: false,
+        hasMergeInProgress: false,
+        hasRebaseInProgress: false,
+        hasCherryPickInProgress: false,
+        conflictType: null,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Determine the type of conflict based on Git state
+   */
+  determineConflictType(hasMergeInProgress, hasRebaseInProgress, hasCherryPickInProgress) {
+    if (hasMergeInProgress) return 'merge';
+    if (hasRebaseInProgress) return 'rebase';
+    if (hasCherryPickInProgress) return 'cherry-pick';
+    return 'unknown';
+  }
+
+  /**
+   * Abort merge operation
+   */
+  async abortMerge() {
+    console.log('🔄 Aborting merge operation...');
+    const result = await this.executeGitCommand('git merge --abort', { 
+      skipEmission: true,
+      allowExecutionInMockMode: true 
+    });
+    
+    if (result.success) {
+      console.log('✅ Merge aborted successfully');
+    } else {
+      console.error('❌ Failed to abort merge:', result.error);
+    }
+    
+    return result;
+  }
+
+  /**
+   * Abort rebase operation
+   */
+  async abortRebase() {
+    console.log('🔄 Aborting rebase operation...');
+    const result = await this.executeGitCommand('git rebase --abort', { 
+      skipEmission: true,
+      allowExecutionInMockMode: true 
+    });
+    
+    if (result.success) {
+      console.log('✅ Rebase aborted successfully');
+    } else {
+      console.error('❌ Failed to abort rebase:', result.error);
+    }
+    
+    return result;
+  }
+
+  /**
+   * Abort cherry-pick operation
+   */
+  async abortCherryPick() {
+    console.log('🔄 Aborting cherry-pick operation...');
+    const result = await this.executeGitCommand('git cherry-pick --abort', { 
+      skipEmission: true,
+      allowExecutionInMockMode: true 
+    });
+    
+    if (result.success) {
+      console.log('✅ Cherry-pick aborted successfully');
+    } else {
+      console.error('❌ Failed to abort cherry-pick:', result.error);
+    }
+    
+    return result;
+  }
+
+  /**
+   * Clean up all conflicts by aborting ongoing operations
+   */
+  async cleanupConflicts() {
+    console.log('🧹 Starting conflict cleanup...');
+    
+    const conflictState = await this.isInConflictState();
+    
+    if (!conflictState.isInConflict) {
+      console.log('ℹ️ No conflicts detected, repository is clean');
+      return {
+        success: true,
+        message: 'No conflicts to clean up',
+        conflictType: null,
+        operations: []
+      };
+    }
+    
+    console.log(`🔍 Detected ${conflictState.conflictType} conflict, attempting cleanup...`);
+    
+    const operations = [];
+    let cleanupSuccess = true;
+    let lastError = null;
+    
+    try {
+      // Abort operations based on conflict type
+      if (conflictState.hasMergeInProgress) {
+        const mergeResult = await this.abortMerge();
+        operations.push({ type: 'merge-abort', success: mergeResult.success, error: mergeResult.error });
+        if (!mergeResult.success) {
+          cleanupSuccess = false;
+          lastError = mergeResult.error;
+        }
+      }
+      
+      if (conflictState.hasRebaseInProgress) {
+        const rebaseResult = await this.abortRebase();
+        operations.push({ type: 'rebase-abort', success: rebaseResult.success, error: rebaseResult.error });
+        if (!rebaseResult.success) {
+          cleanupSuccess = false;
+          lastError = rebaseResult.error;
+        }
+      }
+      
+      if (conflictState.hasCherryPickInProgress) {
+        const cherryPickResult = await this.abortCherryPick();
+        operations.push({ type: 'cherry-pick-abort', success: cherryPickResult.success, error: cherryPickResult.error });
+        if (!cherryPickResult.success) {
+          cleanupSuccess = false;
+          lastError = cherryPickResult.error;
+        }
+      }
+      
+      // Verify repository is clean after cleanup
+      const finalState = await this.isInConflictState();
+      const isClean = !finalState.isInConflict;
+      
+      if (isClean) {
+        console.log('✅ Conflict cleanup completed successfully');
+      } else {
+        console.log('⚠️ Repository still in conflicted state after cleanup');
+        cleanupSuccess = false;
+        lastError = 'Repository still in conflicted state after cleanup attempts';
+      }
+      
+      return {
+        success: cleanupSuccess,
+        message: cleanupSuccess ? 'Conflicts cleaned up successfully' : 'Failed to clean up all conflicts',
+        conflictType: conflictState.conflictType,
+        operations,
+        isClean,
+        error: lastError
+      };
+      
+    } catch (error) {
+      console.error('❌ Error during conflict cleanup:', error);
+      return {
+        success: false,
+        message: 'Error during conflict cleanup',
+        conflictType: conflictState.conflictType,
+        operations,
+        isClean: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 module.exports = GitService;

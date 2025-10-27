@@ -469,6 +469,16 @@ class WorkflowExecutor {
       } else {
         operationState.status = 'failed';
         this.updateBranchStatus(execution, operation.target, 'failed');
+        
+        // For merge, rebase, and pull operations, always attempt cleanup on failure
+        // since these operations can leave the repository in a conflicted state
+        const shouldCleanup = ['merge', 'rebase', 'pull'].includes(operation.type);
+        
+        if (shouldCleanup) {
+          this.addLog(execution, `⚠️ ${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'warning', result.command, false);
+          // Attempt to clean up any potential conflicts
+          await this.handleConflictCleanup(execution, operation, result);
+        }
         this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'error', result.command, false);
         
         this.emitUpdate(execution.id, 'operation-failed', {
@@ -559,6 +569,43 @@ class WorkflowExecutor {
    */
   getExecutionStatus(executionId) {
     return this.executions.get(executionId);
+  }
+
+  /**
+   * Handle conflict cleanup after a failed operation
+   */
+  async handleConflictCleanup(execution, operation, result) {
+    try {
+      console.log(`🧹 Handling conflict cleanup for operation: ${operation.id} (${operation.type})`);
+      
+      // Determine conflict type from operation type if not detected
+      const conflictType = result.conflictType || operation.type;
+      
+      // Attempt to clean up conflicts
+      const cleanupResult = await this.gitService.cleanupConflicts();
+      
+      if (cleanupResult.success) {
+        this.addLog(execution, `✅ Repository cleaned up successfully after ${operation.type} failure`, 'success', null, false);
+        
+        console.log(`✅ Conflict cleanup completed for operation: ${operation.id}`);
+      } else {
+        // Even if cleanup "failed", it might have actually cleaned up the repo
+        // Check if repo is actually clean now
+        const finalState = await this.gitService.isInConflictState();
+        
+        if (!finalState.isInConflict) {
+          this.addLog(execution, `✅ Repository is clean after ${operation.type} failure (cleanup successful)`, 'success', null, false);
+          console.log(`✅ Repository is clean after cleanup for operation: ${operation.id}`);
+        } else {
+          this.addLog(execution, `❌ Failed to clean up repository after ${operation.type} failure: ${cleanupResult.error}`, 'error', null, false);
+          console.error(`❌ Conflict cleanup failed for operation: ${operation.id}`, cleanupResult.error);
+        }
+      }
+      
+    } catch (error) {
+      console.error(`❌ Error during conflict cleanup for operation: ${operation.id}`, error);
+      this.addLog(execution, `❌ Error during conflict cleanup: ${error.message}`, 'error', null, false);
+    }
   }
 
   /**
