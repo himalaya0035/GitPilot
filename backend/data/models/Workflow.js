@@ -87,6 +87,10 @@ const workflowSchema = new mongoose.Schema({
     minlength: 1,
     maxlength: 100
   },
+  repositoryPath: {
+    type: String,
+    default: null
+  },
   branches: {
     type: [branchSchema],
     required: true,

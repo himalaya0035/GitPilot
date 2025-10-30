@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import { validateBranchName, sanitizeBranchName } from '../utils/validation';
 import TagManagementModal from './TagManagementModal';
 import './BranchConfigModal.css';
+import { getBranches } from '../services/GitApi';
 import { 
   Factory, 
   Wrench, 
@@ -51,9 +52,15 @@ const branchTypeConfigs = {
   }
 };
 
-function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
+function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete }) {
   const [formData, setFormData] = useState({});
   const [showTagModal, setShowTagModal] = useState(false);
+  const [branchOptions, setBranchOptions] = useState([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const dropdownRef = useRef(null);
+  const listRef = useRef(null);
   const config = branchTypeConfigs[branch.data.branchType];
   const { showWarning } = useNotification();
 
@@ -69,6 +76,45 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
       description: branch.data.description || '',
     });
   }, [branch, config]);
+
+  // Debounced server-side search
+  useEffect(() => {
+    if (!repositoryPath) return;
+    const handle = setTimeout(async () => {
+      try {
+        setLoadingBranches(true);
+        const list = await getBranches(repositoryPath, formData.branchName || '', 20, true);
+        setBranchOptions(list);
+      } catch (e) {
+        console.error('Failed to fetch branches', e);
+      } finally {
+        setLoadingBranches(false);
+      }
+    }, 100);
+    return () => clearTimeout(handle);
+  }, [repositoryPath, formData.branchName]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (!dropdownRef.current) return;
+      if (!dropdownRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+        setHighlightIndex(-1);
+      }
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
+
+  // Keep highlighted item in view when navigating with keyboard
+  useEffect(() => {
+    if (!listRef.current || highlightIndex < 0) return;
+    const children = listRef.current.children;
+    if (!children || !children[highlightIndex]) return;
+    const el = children[highlightIndex];
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [highlightIndex]);
 
   const handleInputChange = (fieldName, value) => {
     setFormData(prev => ({
@@ -131,14 +177,119 @@ function BranchConfigModal({ branch, onSave, onCancel, onDelete }) {
           <div className="form-fields">
             <div className="form-group">
               <label htmlFor="branchName">Branch Name *</label>
-              <input
-                type="text"
-                id="branchName"
-                value={formData.branchName}
-                onChange={(e) => handleInputChange('branchName', e.target.value)}
-                placeholder="e.g., main, feature/user-auth"
-                required
-              />
+              {repositoryPath ? (
+                <div style={{ position: 'relative' }} ref={dropdownRef}>
+                  <input
+                    type="text"
+                    id="branchName"
+                    value={formData.branchName}
+                    onChange={(e) => { handleInputChange('branchName', e.target.value); setShowSuggestions(true); setHighlightIndex(-1); }}
+                    onFocus={() => setShowSuggestions(true)}
+                    style={{ width: '100%' }}
+                    onKeyDown={(e) => {
+                      if (!showSuggestions) return;
+                      const filtered = branchOptions;
+                      const lastIndex = filtered.length - 1;
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (lastIndex >= 0) {
+                          setHighlightIndex((prev) => {
+                            const next = prev < 0 ? 0 : Math.min(prev + 1, lastIndex);
+                            return next;
+                          });
+                        }
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (lastIndex >= 0) {
+                          setHighlightIndex((prev) => Math.max(prev - 1, 0));
+                        }
+                      } else if (e.key === 'Enter') {
+                        if (highlightIndex >= 0 && filtered[highlightIndex]) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleInputChange('branchName', filtered[highlightIndex].name);
+                          setShowSuggestions(false);
+                          setHighlightIndex(-1);
+                        }
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowSuggestions(false);
+                        setHighlightIndex(-1);
+                      }
+                    }}
+                    placeholder={loadingBranches ? 'Loading branches…' : 'Search branches (local + remote)'}
+                    required
+                  />
+                  {showSuggestions && (formData.branchName || '').length >= 1 && (() => {
+                    const filtered = branchOptions;
+                    if (filtered.length === 0) return null;
+                    return (
+                      <div ref={listRef} style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 20,
+                        background: '#fff',
+                        color: '#111827',
+                        borderRadius: 10,
+                        border: '1px solid rgba(99,102,241,0.25)',
+                        padding: 8,
+                        marginTop: 8,
+                        maxHeight: 220,
+                        overflowY: 'auto',
+                        boxShadow: '0 10px 30px rgba(99,102,241,0.15), 0 6px 12px rgba(0,0,0,0.06)'
+                      }}>
+                        {filtered.map((b, idx) => (
+                          <div
+                            key={`${b.scope}-${b.name}`}
+                            onMouseDown={() => { handleInputChange('branchName', b.name); setShowSuggestions(false); setHighlightIndex(-1); }}
+                            onMouseEnter={(e) => {
+                              setHighlightIndex(idx)
+                              e.stopPropagation();
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              padding: '10px 12px',
+                              borderRadius: 8,
+                              background: highlightIndex === idx ? 'rgba(99,102,241,0.12)' : 'transparent',
+                              cursor: 'pointer',
+                              fontWeight: 600
+                            }}
+                          >
+                            <span style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: 12,
+                              background: b.scope === 'remote' ? 'rgba(99,102,241,0.15)' : 'rgba(16,185,129,0.15)',
+                              color: b.scope === 'remote' ? '#6366f1' : '#10b981'
+                            }}>
+                              {b.scope}
+                            </span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  id="branchName"
+                  value={formData.branchName}
+                  onChange={(e) => handleInputChange('branchName', e.target.value)}
+                  style={{ width: '100%' }}
+                  placeholder="e.g., main, feature/user-auth"
+                  required
+                />
+              )}
             </div>
 
             <div className="form-group">

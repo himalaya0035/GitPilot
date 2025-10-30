@@ -16,6 +16,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import BranchConfigModal from './BranchConfigModal';
+import RepositoryConnectModal from './RepositoryConnectModal';
 import OperationConfigModal from './OperationConfigModal';
 import WorkflowManager from './WorkflowManager';
 import { useWorkflows } from '../hooks/useWorkflows';
@@ -37,7 +38,8 @@ import {
   Target, 
   Trash2, 
   Sparkles,
-  Tag
+  Tag,
+  CheckCircle2
 } from 'lucide-react';
 
 // Branch node types will be defined after component definitions
@@ -75,6 +77,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const [tempWorkflowName, setTempWorkflowName] = useState('');
   const [nameValidationError, setNameValidationError] = useState('');
   const [isBeautifying, setIsBeautifying] = useState(false);
+  const [repositoryPath, setRepositoryPath] = useState(null);
+  const [showRepoModal, setShowRepoModal] = useState(false);
   
   // Copy/Paste functionality state
   const [selectedNodes, setSelectedNodes] = useState(new Set());
@@ -603,6 +607,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
       setIsSaving(true);
       const workflow = {
         name: workflowName.trim(),
+        repositoryPath: repositoryPath || null,
         branches: nodes.map((node) => ({
           id: node.id,
           name: node.data.branchName,
@@ -697,12 +702,13 @@ function WorkflowEditor({ onWorkflowCreated }) {
     } finally {
       setIsSaving(false);
     }
-  }, [workflowName, nodes, edges, currentWorkflowId, saveWorkflow, updateWorkflow, showWarning, showSuccess, showError]);
+  }, [workflowName, repositoryPath, nodes, edges, currentWorkflowId, saveWorkflow, updateWorkflow, showWarning, showSuccess, showError]);
 
   // Load workflow from storage
   const loadWorkflow = useCallback((workflow) => {
     setWorkflowName(workflow.name);
     setCurrentWorkflowId(workflow.id);
+    setRepositoryPath(workflow.repositoryPath || null);
 
     // Check for auto-pull operations to determine which branches should have autoPull enabled
     const autoPullBranches = new Set();
@@ -1142,6 +1148,42 @@ function WorkflowEditor({ onWorkflowCreated }) {
 
         {/* Section Divider */}
         <div className="section-divider"></div>
+
+        {/* Repository Connect */}
+        <div className="palette-section" style={{  }}>
+          <h4>Repository</h4>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setShowRepoModal(true)}
+              className="control-button select-all-button"
+              style={{ flex: repositoryPath ? 4 : 1, width: repositoryPath ? 'auto' : '100%' }}
+              title={repositoryPath ? `Connected: ${repositoryPath}` : 'Connect a local Git repository to enable branch suggestions'}
+            >
+              <Link size={16} />
+              {repositoryPath ? 'Change Repository' : 'Connect Git Repository'}
+            </button>
+            {repositoryPath && (
+              <div
+                aria-label="repository status"
+                title="Connected"
+                style={{
+                  flex: 1,
+                  height: 36,
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 60%, #0e9f6e 100%)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25) inset, 0 2px 6px rgba(0,0,0,0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white'
+                }}
+              >
+                <CheckCircle2 size={18} />
+              </div>
+            )}
+          </div>
+        </div>
         
         {/* Branch Palette */}
         <div className="palette-section">
@@ -1303,6 +1345,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
       {showBranchConfig && selectedBranch && (
         <BranchConfigModal
           branch={selectedBranch}
+          repositoryPath={repositoryPath}
           onSave={onBranchConfigSave}
           onCancel={() => {
             setShowBranchConfig(false);
@@ -1313,6 +1356,15 @@ function WorkflowEditor({ onWorkflowCreated }) {
             setShowBranchConfig(false);
             setSelectedBranch(null);
           }}
+        />
+      )}
+
+      {showRepoModal && (
+        <RepositoryConnectModal
+          initialPath={repositoryPath || ''}
+          onSave={(path) => { setRepositoryPath(path); setShowRepoModal(false); }}
+          onCancel={() => setShowRepoModal(false)}
+          showInfo
         />
       )}
 
