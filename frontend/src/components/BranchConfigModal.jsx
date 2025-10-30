@@ -315,7 +315,7 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                   <span className="checkmark"></span>
                   Pull latest changes from remote
                 </label>
-                <small>Automatically create pull operation for this branch</small>
+                <small>Pull this branch to its latest version before any operation</small>
                 {formData.autoPull && (
                   <div className="inline-input">
                     <input
@@ -341,7 +341,7 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                   <span className="checkmark"></span>
                   Push latest changes to remote
                 </label>
-                <small>Automatically create push operation for this branch</small>
+                <small>Push this branch to remote after its operations</small>
                 {formData.autoPush && (
                   <div className="inline-input">
                     <input
