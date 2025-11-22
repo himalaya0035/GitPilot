@@ -894,7 +894,8 @@
   position: absolute;
   top: 10px;
   right: 32px;
-  color: #ffffff;
+  color: #000 !important;
+  background: #ffffff !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -909,40 +910,12 @@
   height: 12px;
 }
 
-/* Branch-specific auto-pull indicator colors */
-.branch-node.production .auto-pull-indicator {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-}
-
-.branch-node.feature .auto-pull-indicator {
-  background: linear-gradient(135deg, #007bff, #0056b3);
-}
-
-.branch-node.release .auto-pull-indicator {
-  background: linear-gradient(135deg, #28a745, #1e7e34);
-}
-
-.branch-node.hotfix .auto-pull-indicator {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-}
-
-.branch-node.develop .auto-pull-indicator {
-  background: linear-gradient(135deg, #6f42c1, #5a32a3);
-}
-
-.branch-node.staging .auto-pull-indicator {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-}
-
-.branch-node.integration .auto-pull-indicator {
-  background: linear-gradient(135deg, #fd7e14, #e55a00);
-}
-
 .auto-push-indicator {
   position: absolute;
   top: 10px;
   right: 10px;
-  color: #ffffff;
+  color: #000 !important;
+  background: #ffffff !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -978,13 +951,16 @@
 .auto-pull-indicator.running,
 .auto-push-indicator.running,
 .delete-branch-indicator.running {
-  animation: indicator-pulse 1.5s ease-in-out infinite;
+  animation: indicator-pulse 1s ease-in-out infinite;
+  background: linear-gradient(135deg, #049af1, #154bdf) !important;
+  color: #fff !important;
 }
 
 .auto-pull-indicator.success,
 .auto-push-indicator.success,
 .delete-branch-indicator.success {
   background: linear-gradient(135deg, #28a745, #1e7e34) !important;
+  color: #fff !important;
   animation: none;
 }
 
@@ -992,6 +968,7 @@
 .auto-push-indicator.failed,
 .delete-branch-indicator.failed {
   background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  color: #fff !important;
   animation: none;
 }
 
