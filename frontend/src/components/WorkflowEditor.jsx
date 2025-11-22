@@ -39,7 +39,9 @@ import {
   Trash2, 
   Sparkles,
   Tag,
-  CheckCircle2
+  CheckCircle2,
+  RotateCcw,
+  RotateCw
 } from 'lucide-react';
 
 // Branch node types will be defined after component definitions
@@ -58,8 +60,8 @@ const initialNodes = [];
 const initialEdges = [];
 
 function WorkflowEditor({ onWorkflowCreated }) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [selectedEdge, setSelectedEdge] = useState(null);
   const [showBranchConfig, setShowBranchConfig] = useState(false);
@@ -93,38 +95,172 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const [screenSelectionStart, setScreenSelectionStart] = useState(null);
   const [justFinishedSelection, setJustFinishedSelection] = useState(false);
 
+  // Undo/Redo history state
+  const [history, setHistory] = useState([{ nodes: initialNodes, edges: initialEdges }]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const HISTORY_LIMIT = 50;
+  
+  // Track dragging state for history capture
+  const isDraggingRef = useRef(false);
+  const dragEndTimeoutRef = useRef(null);
+  const isUndoingOrRedoingRef = useRef(false);
+  
+  // Refs to track latest nodes/edges/historyIndex to avoid stale closures
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  const historyIndexRef = useRef(0);
+
+
+
   // Workflow management
   const { saveWorkflow, updateWorkflow } = useWorkflows();
   const { showSuccess, showError, showWarning } = useNotification();
 
-  // Keyboard event handler for copy/paste functionality
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      // Check if we're in an input field
-      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
-        return;
-      }
+  // Save current state to history
+  const saveToHistory = useCallback(() => {
+    // Skip saving if we're in the middle of an undo/redo operation
+    if (isUndoingOrRedoingRef.current) {
+      return;
+    }
 
-      const isCtrlOrCmd = event.ctrlKey || event.metaKey;
-      
-      if (isCtrlOrCmd && event.key === 'c') {
-        event.preventDefault();
-        copySelectedElements();
-      } else if (isCtrlOrCmd && event.key === 'v') {
-        event.preventDefault();
-        pasteElements();
-      } else if (isCtrlOrCmd && event.key === 'a') {
-        event.preventDefault();
-        selectAllElements();
-      } else if (event.key === 'Delete' || event.key === 'Backspace') {
-        event.preventDefault();
-        deleteSelectedElements();
-      }
+    // Use refs to get the latest values (avoids stale closure issue)
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const currentHistoryIndex = historyIndexRef.current;
+
+    const currentState = {
+      nodes: JSON.parse(JSON.stringify(currentNodes)),
+      edges: JSON.parse(JSON.stringify(currentEdges)),
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodes, selectedEdges, clipboard, nodes, edges]);
+    setHistory((prevHistory) => {
+      // Remove future history if we're not at the end
+      const newHistory = prevHistory.slice(0, currentHistoryIndex + 1);
+      
+      // Add new state
+      const updatedHistory = [...newHistory, currentState];
+      
+      // Limit to HISTORY_LIMIT entries
+      if (updatedHistory.length > HISTORY_LIMIT) {
+        const limitedHistory = updatedHistory.slice(-HISTORY_LIMIT);
+        // Update ref to point to the last entry after truncation
+        const newIndex = limitedHistory.length - 1;
+        historyIndexRef.current = newIndex;
+        setHistoryIndex(newIndex);
+        return limitedHistory;
+      }
+      
+      // Update ref and state to point to the newly added state
+      const newIndex = currentHistoryIndex + 1;
+      historyIndexRef.current = newIndex;
+      setHistoryIndex(newIndex);
+      
+      return updatedHistory;
+    });
+  }, []);
+
+  // Undo function
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      const previousState = history[newIndex];
+      
+      isUndoingOrRedoingRef.current = true;
+      historyIndexRef.current = newIndex;
+      setHistoryIndex(newIndex);
+      setNodes(JSON.parse(JSON.stringify(previousState.nodes)));
+      setEdges(JSON.parse(JSON.stringify(previousState.edges)));
+      
+      // Reset flag after state updates
+      setTimeout(() => {
+        isUndoingOrRedoingRef.current = false;
+      }, 0);
+    }
+  }, [historyIndex, history, setNodes, setEdges]);
+
+  // Redo function
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      const nextState = history[newIndex];
+      
+      isUndoingOrRedoingRef.current = true;
+      historyIndexRef.current = newIndex;
+      setHistoryIndex(newIndex);
+      setNodes(JSON.parse(JSON.stringify(nextState.nodes)));
+      setEdges(JSON.parse(JSON.stringify(nextState.edges)));
+      
+      // Reset flag after state updates
+      setTimeout(() => {
+        isUndoingOrRedoingRef.current = false;
+      }, 0);
+    }
+  }, [historyIndex, history, setNodes, setEdges]);
+
+  // Wrapper for onNodesChange to detect drag end
+  const onNodesChange = useCallback((changes) => {
+    onNodesChangeInternal(changes);
+    
+    // Check if any change is a position change (drag)
+    const hasPositionChange = changes.some(change => change.type === 'position');
+    
+    if (hasPositionChange) {
+      isDraggingRef.current = true;
+      
+      // Clear existing timeout
+      if (dragEndTimeoutRef.current) {
+        clearTimeout(dragEndTimeoutRef.current);
+      }
+      
+      // Save to history after drag ends (debounce)
+      dragEndTimeoutRef.current = setTimeout(() => {
+        if (isDraggingRef.current) {
+          isDraggingRef.current = false;
+          saveToHistory();
+        }
+      }, 150);
+    }
+  }, [onNodesChangeInternal, saveToHistory]);
+
+  // Wrapper for onEdgesChange (edges don't typically drag, but track changes)
+  const onEdgesChange = useCallback((changes) => {
+    onEdgesChangeInternal(changes);
+    
+    // For edges, save immediately on meaningful changes
+    const meaningfulChanges = ['add', 'remove'];
+    if (changes.some(change => meaningfulChanges.includes(change.type))) {
+      // Debounce to avoid saving on every change
+      if (dragEndTimeoutRef.current) {
+        clearTimeout(dragEndTimeoutRef.current);
+      }
+      
+      dragEndTimeoutRef.current = setTimeout(() => {
+        saveToHistory();
+      }, 150);
+    }
+  }, [onEdgesChangeInternal, saveToHistory]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dragEndTimeoutRef.current) {
+        clearTimeout(dragEndTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Keep refs in sync with state to avoid stale closures
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
+
+  useEffect(() => {
+    historyIndexRef.current = historyIndex;
+  }, [historyIndex]);
 
   // Copy selected elements to clipboard
   const copySelectedElements = useCallback(() => {
@@ -191,13 +327,16 @@ function WorkflowEditor({ onWorkflowCreated }) {
     setNodes(prevNodes => [...prevNodes, ...newNodes]);
     setEdges(prevEdges => [...prevEdges, ...newEdges]);
     
+    // Save to history after paste
+    setTimeout(() => saveToHistory(), 0);
+    
     // Clear selection and update clipboard
     setSelectedNodes(new Set());
     setSelectedEdges(new Set());
     setClipboard({ nodes: [], edges: [] });
     
     showSuccess(`Pasted ${newNodes.length} nodes and ${newEdges.length} edges`);
-  }, [clipboard, setNodes, setEdges, showSuccess, showWarning]);
+  }, [clipboard, setNodes, setEdges, showSuccess, showWarning, saveToHistory]);
 
   // Select all elements
   const selectAllElements = useCallback(() => {
@@ -226,10 +365,48 @@ function WorkflowEditor({ onWorkflowCreated }) {
       !selectedNodes.has(edge.target)
     ));
     
+    // Save to history after delete
+    setTimeout(() => saveToHistory(), 0);
+    
     showSuccess(`Deleted ${selectedNodes.size} nodes and ${selectedEdges.size} edges`);
     setSelectedNodes(new Set());
     setSelectedEdges(new Set());
-  }, [selectedNodes, selectedEdges, setNodes, setEdges, showSuccess, showWarning]);
+  }, [selectedNodes, selectedEdges, setNodes, setEdges, showSuccess, showWarning, saveToHistory]);
+
+  // Keyboard event handler for copy/paste/undo/redo functionality
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Check if we're in an input field
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const isCtrlOrCmd = event.ctrlKey || event.metaKey;
+      
+      if (isCtrlOrCmd && event.key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        undo();
+      } else if ((isCtrlOrCmd && event.key === 'y') || (isCtrlOrCmd && event.shiftKey && event.key === 'z')) {
+        event.preventDefault();
+        redo();
+      } else if (isCtrlOrCmd && event.key === 'c') {
+        event.preventDefault();
+        copySelectedElements();
+      } else if (isCtrlOrCmd && event.key === 'v') {
+        event.preventDefault();
+        pasteElements();
+      } else if (isCtrlOrCmd && event.key === 'a') {
+        event.preventDefault();
+        selectAllElements();
+      } else if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        deleteSelectedElements();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNodes, selectedEdges, clipboard, nodes, edges, undo, redo, copySelectedElements, pasteElements, selectAllElements, deleteSelectedElements]);
 
   const isValidConnection = useCallback((connection) => {
     return true; // Allow all connections for now
@@ -251,8 +428,11 @@ function WorkflowEditor({ onWorkflowCreated }) {
         labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
       };
       setEdges((eds) => addEdge(newEdge, eds));
+      
+      // Save to history after edge creation
+      setTimeout(() => saveToHistory(), 0);
     },
-    [setEdges]
+    [setEdges, saveToHistory]
   );
 
   const onNodeClick = useCallback((event, node) => {
@@ -547,9 +727,12 @@ function WorkflowEditor({ onWorkflowCreated }) {
         };
 
         setNodes((nds) => nds.concat(newNode));
+        
+        // Save to history after node creation
+        setTimeout(() => saveToHistory(), 0);
       }
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, saveToHistory]
   );
 
   const onBranchConfigSave = useCallback((branchData) => {
@@ -560,9 +743,13 @@ function WorkflowEditor({ onWorkflowCreated }) {
           : node
       )
     );
+    
+    // Save to history after node update
+    setTimeout(() => saveToHistory(), 0);
+    
     setShowBranchConfig(false);
     setSelectedBranch(null);
-  }, [selectedBranch, setNodes]);
+  }, [selectedBranch, setNodes, saveToHistory]);
 
   const onOperationConfigSave = useCallback((operationData) => {
     setEdges((eds) =>
@@ -580,18 +767,28 @@ function WorkflowEditor({ onWorkflowCreated }) {
           : edge
       )
     );
+    
+    // Save to history after edge update
+    setTimeout(() => saveToHistory(), 0);
+    
     setShowOperationConfig(false);
     setSelectedEdge(null);
-  }, [selectedEdge, setEdges]);
+  }, [selectedEdge, setEdges, saveToHistory]);
 
   const deleteBranch = useCallback((nodeId) => {
     setNodes((nds) => nds.filter((node) => node.id !== nodeId));
     setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
-  }, [setNodes, setEdges]);
+    
+    // Save to history after delete
+    setTimeout(() => saveToHistory(), 0);
+  }, [setNodes, setEdges, saveToHistory]);
 
   const deleteOperation = useCallback((edgeId) => {
     setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
-  }, [setEdges]);
+    
+    // Save to history after delete
+    setTimeout(() => saveToHistory(), 0);
+  }, [setEdges, saveToHistory]);
 
 
 
@@ -824,6 +1021,12 @@ function WorkflowEditor({ onWorkflowCreated }) {
 
     setNodes(loadedNodes);
     setEdges(loadedEdges);
+    
+    // Reset history with loaded workflow as initial state
+    const initialHistory = [{ nodes: JSON.parse(JSON.stringify(loadedNodes)), edges: JSON.parse(JSON.stringify(loadedEdges)) }];
+    setHistory(initialHistory);
+    historyIndexRef.current = 0;
+    setHistoryIndex(0);
   }, [setNodes, setEdges]);
 
   // Clear current workflow
@@ -832,6 +1035,12 @@ function WorkflowEditor({ onWorkflowCreated }) {
     setCurrentWorkflowId(null);
     setNodes([]);
     setEdges([]);
+    
+    // Reset history with empty state
+    const emptyHistory = [{ nodes: [], edges: [] }];
+    setHistory(emptyHistory);
+    historyIndexRef.current = 0;
+    setHistoryIndex(0);
   }, [setNodes, setEdges]);
 
   const exportWorkflowAsJSON = useCallback(() => {
@@ -1026,8 +1235,12 @@ function WorkflowEditor({ onWorkflowCreated }) {
       const analysis = analyzeLayout(nodes, edges);
       if (!analysis.needsLayout) {
         showSuccess('Layout looks good 😊');
+        setIsBeautifying(false);
         return;
       }
+      
+      // Save current state to history before beautifying (for undo support)
+      saveToHistory();
       
       // Calculate new layout
       const layoutedNodes = getGitWorkflowLayout(nodes, edges);
@@ -1035,8 +1248,9 @@ function WorkflowEditor({ onWorkflowCreated }) {
       // Animate to new positions
       animateToNewPositions(nodes, layoutedNodes, setNodes, 600);
       
-      // Show success message after animation
+      // Save beautified state to history after animation completes
       setTimeout(() => {
+        saveToHistory();
         showSuccess('Beautified ✨');
       }, 650);
       
@@ -1046,7 +1260,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
     } finally {
       setIsBeautifying(false);
     }
-  }, [nodes, edges, setNodes, isBeautifying, showSuccess, showError]);
+  }, [nodes, edges, setNodes, isBeautifying, showSuccess, showError, saveToHistory]);
 
 
   return (
@@ -1255,6 +1469,39 @@ function WorkflowEditor({ onWorkflowCreated }) {
             </span>
             <span className="clipboard-info">
               Clipboard: {clipboard.nodes.length} nodes, {clipboard.edges.length} edges
+            </span>
+          </div>
+        </div>
+
+        {/* Section Divider */}
+        <div className="section-divider"></div>
+
+        {/* Undo/Redo Controls */}
+        <div className="copy-paste-section">
+          <h4>History</h4>
+          <div className="copy-paste-controls">
+            <button 
+              onClick={undo}
+              disabled={historyIndex === 0}
+              className="control-button copy-button"
+              title="Undo last action (Ctrl+Z)"
+            >
+              <RotateCcw size={16} />
+              Undo
+            </button>
+            <button 
+              onClick={redo}
+              disabled={historyIndex >= history.length - 1}
+              className="control-button paste-button"
+              title="Redo last undone action (Ctrl+Y)"
+            >
+              <RotateCw size={16} />
+              Redo
+            </button>
+          </div>
+          <div className="selection-status">
+            <span className="selection-info">
+              History: {historyIndex + 1} / {history.length}
             </span>
           </div>
         </div>
