@@ -69,6 +69,8 @@ function WorkflowEditor({ onWorkflowCreated }) {
   const [showWorkflowManager, setShowWorkflowManager] = useState(false);
   const [currentWorkflowId, setCurrentWorkflowId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [autoSave, setAutoSave] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const fileButtonRef = useRef(null);
@@ -399,12 +401,15 @@ function WorkflowEditor({ onWorkflowCreated }) {
       } else if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault();
         deleteSelectedElements();
+      } else if (isCtrlOrCmd && event.key === 's') {
+        event.preventDefault();
+        saveWorkflowToStorage();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodes, selectedEdges, clipboard, nodes, edges, undo, redo, copySelectedElements, pasteElements, selectAllElements, deleteSelectedElements]);
+  }, [selectedNodes, selectedEdges, clipboard, nodes, edges, undo, redo, copySelectedElements, pasteElements, selectAllElements, deleteSelectedElements]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isValidConnection = useCallback((connection) => {
     return true; // Allow all connections for now
@@ -791,7 +796,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
 
 
   // Save workflow to storage
-  const saveWorkflowToStorage = useCallback(async () => {
+  const saveWorkflowToStorage = useCallback(async (silent = false) => {
     const nameValidation = validateWorkflowName(workflowName);
     if (nameValidation) {
       showWarning(nameValidation);
@@ -884,12 +889,20 @@ function WorkflowEditor({ onWorkflowCreated }) {
       if (currentWorkflowId) {
         // Update existing workflow
         await updateWorkflow(currentWorkflowId, workflow);
-        showSuccess('Workflow updated successfully!');
+        if (silent) {
+          setLastSavedAt(new Date());
+        } else {
+          showSuccess('Workflow updated successfully!');
+        }
       } else {
         // Save new workflow
         const savedWorkflow = await saveWorkflow(workflow);
         setCurrentWorkflowId(savedWorkflow.id);
-        showSuccess('Workflow saved successfully!');
+        if (silent) {
+          setLastSavedAt(new Date());
+        } else {
+          showSuccess('Workflow saved successfully!');
+        }
       }
     } catch (error) {
       console.error('Failed to save workflow:', error);
@@ -898,6 +911,14 @@ function WorkflowEditor({ onWorkflowCreated }) {
       setIsSaving(false);
     }
   }, [workflowName, repositoryPath, nodes, edges, currentWorkflowId, saveWorkflow, updateWorkflow, showWarning, showSuccess, showError]);
+
+  useEffect(() => {
+    if (!autoSave) return;
+    const interval = setInterval(() => {
+      saveWorkflowToStorage(true);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [autoSave, saveWorkflowToStorage]);
 
   // Load workflow from storage
   const loadWorkflow = useCallback((workflow) => {
@@ -1356,6 +1377,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
               </div>
             )}
           </div>
+
         </div>
 
         {/* Section Divider */}
@@ -1413,6 +1435,30 @@ function WorkflowEditor({ onWorkflowCreated }) {
                 <span>{branchType}</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Options */}
+        <div className="palette-section">
+          <h4>Options</h4>
+          <div className="autosave-group">
+            <label className="autosave-toggle" title="Auto-save every 10 seconds">
+              <span className="autosave-label">Auto-save</span>
+              <div className={`toggle-switch ${autoSave ? 'on' : ''}`} onClick={() => {
+                if (!autoSave && !workflowName.trim()) {
+                  showWarning('Please set a workflow name before enabling auto-save.');
+                  return;
+                }
+                setAutoSave(v => !v);
+              }}>
+                <div className="toggle-thumb" />
+              </div>
+            </label>
+            {lastSavedAt && (
+              <span className="autosave-timestamp">
+                Last saved at {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            )}
           </div>
         </div>
 

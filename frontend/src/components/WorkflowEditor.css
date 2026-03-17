@@ -1348,3 +1348,88 @@
 .creator-github:hover {
   color: #1a1a1a;
 }
+
+.save-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 8px;
+}
+
+.save-now-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  padding: 8px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  background: transparent;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.save-now-button:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+.save-now-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.autosave-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.autosave-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.toggle-switch {
+  width: 34px;
+  height: 18px;
+  border-radius: 9px;
+  background: #d1d5db;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle-switch.on {
+  background: #667eea;
+}
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: left 0.2s;
+}
+.toggle-switch.on .toggle-thumb {
+  left: 18px;
+}
+
+.autosave-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.autosave-timestamp {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
