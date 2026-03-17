@@ -38,7 +38,8 @@ import {
   Tag,
   CheckCircle2,
   Check,
-  X
+  X,
+  Github
 } from 'lucide-react';
 
 // Branch node types will be defined after component definitions
@@ -1415,10 +1416,38 @@ function WorkflowEditor({ onWorkflowCreated }) {
           </div>
         </div>
 
+        {/* Creator Badge */}
+        <div className="creator-badge">
+          <img
+            src="https://github.com/himalaya0035.png"
+            alt="Himalaya Gupta"
+            className="creator-avatar"
+          />
+          <div className="creator-info">
+            <span className="creator-label">Designed & Built by</span>
+            <a
+              href="https://himalayagupta.dev"
+              target="_blank"
+              rel="noreferrer"
+              className="creator-name"
+            >
+              Himalaya Gupta
+            </a>
+          </div>
+          <a
+            href="https://github.com/himalaya0035"
+            target="_blank"
+            rel="noreferrer"
+            className="creator-github"
+            title="GitHub"
+          >
+            <Github size={20} />
+          </a>
+        </div>
 
       </div>
 
-      <div 
+      <div
         className="reactflow-wrapper" 
         ref={reactFlowWrapper}
         onMouseDown={onPaneMouseDown}
