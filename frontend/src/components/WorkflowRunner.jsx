@@ -1118,6 +1118,9 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
                     <div className="log-entries">
                       {selectedHistoryRecord.logs.map((entry, index) => {
                         const isSeparator = entry.type === 'separator';
+                        const displayTime = entry.timestamp
+                          ? new Date(entry.timestamp).toLocaleTimeString()
+                          : '';
                         return (
                           <div key={index} className={`log-entry ${entry.type} ${isSeparator ? 'separator' : ''}`}>
                             <div className="log-content">
@@ -1128,7 +1131,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
                                 </div>
                               )}
                             </div>
-                            <div className="log-time">{entry.timestamp}</div>
+                            <div className="log-time">{displayTime}</div>
                           </div>
                         );
                       })}

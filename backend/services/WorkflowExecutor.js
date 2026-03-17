@@ -44,6 +44,11 @@ class WorkflowExecutor {
       // Initialize operation and branch states
       this.initializeExecutionState(workflow, execution);
 
+      // Store execution start context in logs
+      this.addLog(execution, `Starting execution of workflow: ${workflow.name}`, 'info', null, false);
+      this.addLog(execution, `Executing on repository: ${this.gitService.workingDirectory || 'unknown'}`, 'info', null, false);
+      this.addLog(execution, `Execution started with ID: ${executionId}`, 'info', null, false);
+
       // Build dependency graph
       const dependencies = this.buildDependencyGraph(workflow.operations);
       // Execute operations
@@ -52,6 +57,7 @@ class WorkflowExecutor {
       // Mark execution as completed
       execution.status = 'completed';
       execution.endTime = new Date().toISOString();
+      this.addLog(execution, 'Workflow execution completed successfully!', 'success', null, false);
       await this._persistExecution(execution, workflow);
       this.emitUpdate(executionId, 'execution-completed', {
         executionId,
@@ -70,6 +76,7 @@ class WorkflowExecutor {
         execution.status = 'stopped';
         execution.endTime = new Date().toISOString();
         execution.error = 'Workflow Execution stopped by user';
+        this.addLog(execution, 'Workflow Execution Aborted by User', 'warning', null, false);
         await this._persistExecution(execution, workflow);
         this.emitUpdate(executionId, 'execution-aborted', {
           executionId,
@@ -80,6 +87,7 @@ class WorkflowExecutor {
         execution.status = 'failed';
         execution.endTime = new Date().toISOString();
         execution.error = error.message;
+        this.addLog(execution, `Workflow execution failed: ${error.message}`, 'error', null, false);
         await this._persistExecution(execution, workflow);
         this.emitUpdate(executionId, 'execution-failed', {
           executionId,
@@ -416,6 +424,7 @@ class WorkflowExecutor {
         status: 'running'
       });
 
+      this.addLog(execution, '', 'separator', null, false);
       this.addLog(execution, `Starting ${operation.type} from ${sourceName} to ${targetName}`, 'info', null, false);
 
       // Execute the operation based on type
@@ -455,7 +464,7 @@ class WorkflowExecutor {
       if (result.success) {
         operationState.status = 'success';
         this.updateBranchStatus(execution, operation.target, 'success');
-        this.addLog(execution, `${operation.type} completed successfully from ${sourceName} to ${targetName}`, 'success', result.command, false);
+        this.addLog(execution, `${operation.type} completed successfully from ${sourceName} to ${targetName}`, 'success', null, false);
         
         this.emitUpdate(execution.id, 'operation-completed', {
           operationId,
@@ -476,11 +485,11 @@ class WorkflowExecutor {
         const shouldCleanup = ['merge', 'rebase', 'pull'].includes(operation.type);
         
         if (shouldCleanup) {
-          this.addLog(execution, ` ${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'warning', result.command, false);
+          this.addLog(execution, ` ${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'warning', null, false);
           // Attempt to clean up any potential conflicts
           await this.handleConflictCleanup(execution, operation, result);
         }
-        this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'error', result.command, false);
+        this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'error', null, false);
         
         this.emitUpdate(execution.id, 'operation-failed', {
           operationId,
@@ -496,7 +505,7 @@ class WorkflowExecutor {
     } catch (error) {
       operationState.status = 'failed';
       this.updateBranchStatus(execution, operation.target, 'failed');
-      this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${error.message}`, 'error', result?.command);
+      this.addLog(execution, `${operation.type} failed from ${sourceName} to ${targetName}: ${error.message}`, 'error', null);
       
       this.emitUpdate(execution.id, 'operation-failed', {
         operationId,
@@ -540,6 +549,19 @@ class WorkflowExecutor {
    * Emit real-time update
    */
   emitUpdate(executionId, event, data) {
+    // Capture git commands into the execution log so history records them
+    if (event === 'command-before-execution' && data.command) {
+      const execution = this.executions.get(executionId);
+      if (execution) {
+        execution.logs.push({
+          timestamp: data.timestamp || new Date().toISOString(),
+          message: data.command,
+          type: 'info',
+          command: data.command
+        });
+      }
+    }
+
     if (this.io) {
       console.log(`Emitting Socket.IO event: ${event} to all clients`);
       this.io.emit(event, {
