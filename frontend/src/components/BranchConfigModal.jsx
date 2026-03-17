@@ -4,14 +4,15 @@ import { validateBranchName, sanitizeBranchName } from '../utils/validation';
 import TagManagementModal from './TagManagementModal';
 import './BranchConfigModal.css';
 import { getBranches } from '../services/GitApi';
-import { 
-  Factory, 
-  Wrench, 
-  Rocket, 
-  AlertTriangle, 
-  Settings, 
-  TestTube, 
-  Link 
+import {
+  Factory,
+  Wrench,
+  Rocket,
+  AlertTriangle,
+  Settings,
+  TestTube,
+  Link,
+  Tag
 } from 'lucide-react';
 
 const branchTypeConfigs = {
@@ -430,7 +431,7 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                   onClick={() => setShowTagModal(true)}
                   className="manage-tags-button"
                 >
-                  🏷️ Manage Tags
+                  <Tag size={16} /> Manage Tags
                 </button>
               </div>
             </div>

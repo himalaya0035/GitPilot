@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Tag } from 'lucide-react';
 import './TagManagementModal.css';
 
 function TagManagementModal({ branch, onSave, onCancel }) {
@@ -49,7 +49,7 @@ function TagManagementModal({ branch, onSave, onCancel }) {
       <div className="tag-management-modal">
         <div className="modal-header">
           <div className="header-content">
-            <div className="tag-icon">🏷️</div>
+            <Tag size={12} className="tag-icon" />
             <div>
               <h3>Tag Management</h3>
               <p className="branch-info">Manage Git tags for <strong>{branch.data.branchName}</strong></p>
@@ -64,7 +64,7 @@ function TagManagementModal({ branch, onSave, onCancel }) {
           <div className="tags-container">
             {tags.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">🏷️</div>
+                <Tag size={48} className="empty-icon" />
                 <p>No tags configured for this branch</p>
                 <small>Add tags to mark important commits or releases</small>
               </div>

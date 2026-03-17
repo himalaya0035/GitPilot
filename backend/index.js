@@ -70,9 +70,9 @@ app.set('io', io);
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
-  console.log(`🚀 GitPilot Backend running on port ${PORT}`);
-  console.log(`📡 Socket.IO server ready for real-time updates`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`GitPilot Backend running on port ${PORT}`);
+  console.log(`Socket.IO server ready for real-time updates`);
+  console.log(`Health check: http://localhost:${PORT}/api/health`);
 });
 
 module.exports = { app, server, io };

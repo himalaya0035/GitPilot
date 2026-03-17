@@ -153,18 +153,18 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
       setCurrentOperation(data);
       
       // Update edge status to running
-      console.log('🔧 Operation started:', data);
+      console.log('Operation started:', data);
       setEdges(prev => {
         const updated = prev.map(edge => {
           // Match by operation ID instead of source/target
           const matches = edge.id === data.operationId;
           if (matches) {
-            console.log('🎯 Found matching edge:', edge.id, 'updating to running');
+            console.log('Found matching edge:', edge.id, 'updating to running');
             return { ...edge, data: { ...edge.data, status: 'running' } };
           }
           return edge;
         });
-        console.log('📊 Updated edges:', updated);
+        console.log('Updated edges:', updated);
         return updated;
       });
       
@@ -260,7 +260,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     };
 
     const handleCommandBeforeExecution = (data) => {
-      console.log('🔧 Received command-before-execution event:', data);
+      console.log('Received command-before-execution event:', data);
       addLogEntry(`Command: ${data.command}`, 'info', data.command);
     };
 

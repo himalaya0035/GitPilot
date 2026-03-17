@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Upload, ClipboardList, Clock } from 'lucide-react';
 import { useWorkflows } from '../hooks/useWorkflows';
 import { useNotification } from '../contexts/NotificationContext';
 import './WorkflowManager.css';
@@ -179,7 +180,7 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
                 onClick={() => document.getElementById('import-workflow-file').click()}
                 className="import-button"
               >
-                📁 Import Workflow
+                <Upload size={16} /> Import Workflow
               </button>
             </div>
           )}
@@ -188,7 +189,7 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
         <div className="workflows-list">
           {filteredWorkflows.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">📋</div>
+              <ClipboardList size={48} className="empty-icon" />
               <h3>No workflows found</h3>
               <p>
                 {searchQuery ? 'No workflows match your search.' : 'Create your first workflow to get started.'}
@@ -209,7 +210,7 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
                   <div className="workflow-meta">
                     <span className="created-date">
                       {isMostRecent(workflow, index) && (
-                        <span className="clock-icon" title="Most recently used">🕒</span>
+                        <Clock size={14} className="clock-icon" title="Most recently used" />
                       )}
                       {getDisplayDate(workflow)}
                     </span>

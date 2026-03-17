@@ -30,7 +30,7 @@ class GitService {
    * Set the emit function and execution ID for command emission
    */
   setEmitFunction(emitUpdate, executionId) {
-    console.log(`🔧 Setting emit function for execution: ${executionId}`);
+    console.log(`Setting emit function for execution: ${executionId}`);
     this.emitUpdate = emitUpdate;
     this.currentExecutionId = executionId;
   }
@@ -40,17 +40,17 @@ class GitService {
    */
   abortCurrentCommand() {
     if (this.currentProcess) {
-      console.log(`🛑 Aborting current Git command: ${this.currentProcess.spawnargs?.join(' ') || 'unknown'}`);
+      console.log(`Aborting current Git command: ${this.currentProcess.spawnargs?.join(' ') || 'unknown'}`);
       try {
         this.currentProcess.kill('SIGTERM');
-        console.log(`✅ Git command aborted successfully`);
+        console.log(`Git command aborted successfully`);
         return true;
       } catch (error) {
-        console.error(`❌ Failed to abort Git command:`, error);
+        console.error(`Failed to abort Git command:`, error);
         return false;
       }
     } else {
-      console.log(`ℹ️ No Git command currently running to abort`);
+      console.log(`No Git command currently running to abort`);
       return false;
     }
   }
@@ -78,7 +78,7 @@ class GitService {
     
     // If in mock mode, intercept the command and return mock response
     if (this.mockMode && !allowExecutionInMockMode) {
-      console.log(`🔍 Mock mode: Intercepting command: ${command}`);
+      console.log(`Mock mode: Intercepting command: ${command}`);
       
       // Store the intercepted command
       if (interceptCommandInMockMode){
@@ -108,15 +108,15 @@ class GitService {
       
       // Emit command before execution if emit function is set and not skipped
       if (this.emitUpdate && this.currentExecutionId && !skipEmission) {
-        console.log(`🔧 Emitting command-before-execution: ${command}`);
+        console.log(`Emitting command-before-execution: ${command}`);
         this.emitUpdate(this.currentExecutionId, 'command-before-execution', {
           command,
           timestamp: new Date().toISOString()
         });
       } else if (skipEmission) {
-        console.log(`🔇 Skipping command emission for internal command: ${command}`);
+        console.log(`Skipping command emission for internal command: ${command}`);
       } else {
-        console.log(`❌ Command emission failed - emitUpdate: ${!!this.emitUpdate}, executionId: ${this.currentExecutionId}`);
+        console.log(`Command emission failed - emitUpdate: ${!!this.emitUpdate}, executionId: ${this.currentExecutionId}`);
       }
       
       // Store the child process reference for potential abortion
@@ -851,16 +851,16 @@ class GitService {
    * Abort merge operation
    */
   async abortMerge() {
-    console.log('🔄 Aborting merge operation...');
+    console.log(' Aborting merge operation...');
     const result = await this.executeGitCommand('git merge --abort', { 
       skipEmission: true,
       allowExecutionInMockMode: true 
     });
     
     if (result.success) {
-      console.log('✅ Merge aborted successfully');
+      console.log(' Merge aborted successfully');
     } else {
-      console.error('❌ Failed to abort merge:', result.error);
+      console.error(' Failed to abort merge:', result.error);
     }
     
     return result;
@@ -870,16 +870,16 @@ class GitService {
    * Abort rebase operation
    */
   async abortRebase() {
-    console.log('🔄 Aborting rebase operation...');
+    console.log(' Aborting rebase operation...');
     const result = await this.executeGitCommand('git rebase --abort', { 
       skipEmission: true,
       allowExecutionInMockMode: true 
     });
     
     if (result.success) {
-      console.log('✅ Rebase aborted successfully');
+      console.log(' Rebase aborted successfully');
     } else {
-      console.error('❌ Failed to abort rebase:', result.error);
+      console.error(' Failed to abort rebase:', result.error);
     }
     
     return result;
@@ -889,16 +889,16 @@ class GitService {
    * Abort cherry-pick operation
    */
   async abortCherryPick() {
-    console.log('🔄 Aborting cherry-pick operation...');
+    console.log(' Aborting cherry-pick operation...');
     const result = await this.executeGitCommand('git cherry-pick --abort', { 
       skipEmission: true,
       allowExecutionInMockMode: true 
     });
     
     if (result.success) {
-      console.log('✅ Cherry-pick aborted successfully');
+      console.log(' Cherry-pick aborted successfully');
     } else {
-      console.error('❌ Failed to abort cherry-pick:', result.error);
+      console.error(' Failed to abort cherry-pick:', result.error);
     }
     
     return result;
@@ -908,12 +908,12 @@ class GitService {
    * Clean up all conflicts by aborting ongoing operations
    */
   async cleanupConflicts() {
-    console.log('🧹 Starting conflict cleanup...');
+    console.log(' Starting conflict cleanup...');
     
     const conflictState = await this.isInConflictState();
     
     if (!conflictState.isInConflict) {
-      console.log('ℹ️ No conflicts detected, repository is clean');
+      console.log(' No conflicts detected, repository is clean');
       return {
         success: true,
         message: 'No conflicts to clean up',
@@ -922,7 +922,7 @@ class GitService {
       };
     }
     
-    console.log(`🔍 Detected ${conflictState.conflictType} conflict, attempting cleanup...`);
+    console.log(`Detected ${conflictState.conflictType} conflict, attempting cleanup...`);
     
     const operations = [];
     let cleanupSuccess = true;
@@ -962,9 +962,9 @@ class GitService {
       const isClean = !finalState.isInConflict;
       
       if (isClean) {
-        console.log('✅ Conflict cleanup completed successfully');
+        console.log(' Conflict cleanup completed successfully');
       } else {
-        console.log('⚠️ Repository still in conflicted state after cleanup');
+        console.log(' Repository still in conflicted state after cleanup');
         cleanupSuccess = false;
         lastError = 'Repository still in conflicted state after cleanup attempts';
       }
@@ -979,7 +979,7 @@ class GitService {
       };
       
     } catch (error) {
-      console.error('❌ Error during conflict cleanup:', error);
+      console.error(' Error during conflict cleanup:', error);
       return {
         success: false,
         message: 'Error during conflict cleanup',

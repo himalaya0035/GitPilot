@@ -308,7 +308,7 @@ class WorkflowExecutor {
     while (completed.size + failed.size < workflow.operations.length) {
       // Check if execution was aborted before each iteration
       if (!this.shouldContinue(execution.id)) {
-        console.log(`🛑 Execution aborted, stopping workflow execution`);
+        console.log(`Execution aborted, stopping workflow execution`);
         break;
       }
 
@@ -332,26 +332,26 @@ class WorkflowExecutor {
       }
 
       // Execute ready operations sequentially (one by one)
-      console.log(`🔄 Executing ${readyOperations.length} ready operations sequentially...`);
+      console.log(`Executing ${readyOperations.length} ready operations sequentially...`);
       
       for (const operation of readyOperations) {
         // Check if execution was aborted before each operation
         if (!this.shouldContinue(execution.id)) {
-          console.log(`🛑 Execution aborted, stopping operation execution`);
+          console.log(`Execution aborted, stopping operation execution`);
           break;
         }
         
-        console.log(`⚡ Executing operation: ${operation.id} (${operation.type})`);
+        console.log(`Executing operation: ${operation.id} (${operation.type})`);
         await this.executeOperation(operation, execution, workflow);
         
         // Update completed and failed sets immediately after each operation
         const opState = execution.operations.get(operation.id);
         if (opState.status === 'success') {
           completed.add(operation.id);
-          console.log(`✅ Operation ${operation.id} completed successfully`);
+          console.log(`Operation ${operation.id} completed successfully`);
         } else if (opState.status === 'failed') {
           failed.add(operation.id);
-          console.log(`❌ Operation ${operation.id} failed`);
+          console.log(`Operation ${operation.id} failed`);
         }
       }
     }
@@ -368,7 +368,7 @@ class WorkflowExecutor {
     
     // Log partial success if some operations failed but not all
     if (failed.size > 0) {
-      console.log(`⚠️ Workflow completed with ${failed.size} failed operations out of ${workflow.operations.length} total operations`);
+      console.log(`Workflow completed with ${failed.size} failed operations out of ${workflow.operations.length} total operations`);
       this.addLog(execution, `Workflow completed with ${failed.size} failed operations`, 'warning');
     }
   }
@@ -475,7 +475,7 @@ class WorkflowExecutor {
         const shouldCleanup = ['merge', 'rebase', 'pull'].includes(operation.type);
         
         if (shouldCleanup) {
-          this.addLog(execution, `⚠️ ${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'warning', result.command, false);
+          this.addLog(execution, ` ${operation.type} failed from ${sourceName} to ${targetName}: ${result.error}`, 'warning', result.command, false);
           // Attempt to clean up any potential conflicts
           await this.handleConflictCleanup(execution, operation, result);
         }
@@ -540,14 +540,14 @@ class WorkflowExecutor {
    */
   emitUpdate(executionId, event, data) {
     if (this.io) {
-      console.log(`📡 Emitting Socket.IO event: ${event} to all clients`);
+      console.log(`Emitting Socket.IO event: ${event} to all clients`);
       this.io.emit(event, {
         executionId,
         timestamp: new Date().toISOString(),
         ...data
       });
     } else {
-      console.log(`❌ No Socket.IO instance available for event: ${event}`);
+      console.log(`No Socket.IO instance available for event: ${event}`);
     }
   }
 
@@ -576,7 +576,7 @@ class WorkflowExecutor {
    */
   async handleConflictCleanup(execution, operation, result) {
     try {
-      console.log(`🧹 Handling conflict cleanup for operation: ${operation.id} (${operation.type})`);
+      console.log(`Handling conflict cleanup for operation: ${operation.id} (${operation.type})`);
       
       // Determine conflict type from operation type if not detected
       const conflictType = result.conflictType || operation.type;
@@ -585,26 +585,26 @@ class WorkflowExecutor {
       const cleanupResult = await this.gitService.cleanupConflicts();
       
       if (cleanupResult.success) {
-        this.addLog(execution, `✅ Repository cleaned up successfully after ${operation.type} failure`, 'success', null, false);
+        this.addLog(execution, ` Repository cleaned up successfully after ${operation.type} failure`, 'success', null, false);
         
-        console.log(`✅ Conflict cleanup completed for operation: ${operation.id}`);
+        console.log(`Conflict cleanup completed for operation: ${operation.id}`);
       } else {
         // Even if cleanup "failed", it might have actually cleaned up the repo
         // Check if repo is actually clean now
         const finalState = await this.gitService.isInConflictState();
         
         if (!finalState.isInConflict) {
-          this.addLog(execution, `✅ Repository is clean after ${operation.type} failure (cleanup successful)`, 'success', null, false);
-          console.log(`✅ Repository is clean after cleanup for operation: ${operation.id}`);
+          this.addLog(execution, ` Repository is clean after ${operation.type} failure (cleanup successful)`, 'success', null, false);
+          console.log(`Repository is clean after cleanup for operation: ${operation.id}`);
         } else {
-          this.addLog(execution, `❌ Failed to clean up repository after ${operation.type} failure: ${cleanupResult.error}`, 'error', null, false);
-          console.error(`❌ Conflict cleanup failed for operation: ${operation.id}`, cleanupResult.error);
+          this.addLog(execution, ` Failed to clean up repository after ${operation.type} failure: ${cleanupResult.error}`, 'error', null, false);
+          console.error(`Conflict cleanup failed for operation: ${operation.id}`, cleanupResult.error);
         }
       }
       
     } catch (error) {
-      console.error(`❌ Error during conflict cleanup for operation: ${operation.id}`, error);
-      this.addLog(execution, `❌ Error during conflict cleanup: ${error.message}`, 'error', null, false);
+      console.error(`Error during conflict cleanup for operation: ${operation.id}`, error);
+      this.addLog(execution, ` Error during conflict cleanup: ${error.message}`, 'error', null, false);
     }
   }
 
@@ -614,7 +614,7 @@ class WorkflowExecutor {
   stopExecution(executionId) {
     const execution = this.executions.get(executionId);
     if (execution) {
-      console.log(`🛑 Stopping execution: ${executionId}`);
+      console.log(`Stopping execution: ${executionId}`);
       
       // Mark execution as aborted
       this.abortedExecutions.add(executionId);
@@ -622,9 +622,9 @@ class WorkflowExecutor {
       // Try to abort the current Git command
       this.gitService.abortCurrentCommand();
       
-      console.log(`✅ Execution ${executionId} stopped successfully`);
+      console.log(`Execution ${executionId} stopped successfully`);
     } else {
-      console.log(`⚠️ Execution ${executionId} not found or already completed`);
+      console.log(`Execution ${executionId} not found or already completed`);
     }
   }
 

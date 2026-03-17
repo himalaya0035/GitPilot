@@ -1,6 +1,6 @@
 # GitPilot Backend Documentation
 
-## 📋 Table of Contents
+## Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [Data Flow](#data-flow)
@@ -16,7 +16,7 @@
 
 ---
 
-## 🎯 Overview
+## Overview
 
 GitPilot Backend is a Node.js/Express server that provides:
 - **RESTful API** for Git workflow management
@@ -27,7 +27,7 @@ GitPilot Backend is a Node.js/Express server that provides:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### High-Level Architecture
 ```
@@ -67,7 +67,7 @@ backend/
 
 ---
 
-## 🔄 Data Flow
+## Data Flow
 
 ### 1. Workflow Creation Flow
 ```
@@ -90,7 +90,7 @@ Execution Status → Operation Progress → Log Entries
 
 ---
 
-## 🧩 Core Components
+## Core Components
 
 ### 1. **Server Entry Point** (`index.js`)
 - **Purpose**: Main server configuration and startup
@@ -177,7 +177,7 @@ class WorkflowExecutor {
 
 ---
 
-## 🌐 API Endpoints
+## API Endpoints
 
 ### Workflow Management (`/api/workflows`)
 
@@ -203,7 +203,7 @@ class WorkflowExecutor {
 | GET | `/:id/status` | Get execution status | - | `{success, data}` |
 | POST | `/:id/stop` | Stop execution | - | `{success, data}` |
 
-**⚠️ Security Note**: Execution on GitPilot repository is **BLOCKED** for safety.
+** Security Note**: Execution on GitPilot repository is **BLOCKED** for safety.
 
 ### Health Check
 | Method | Endpoint | Description | Response |
@@ -212,7 +212,7 @@ class WorkflowExecutor {
 
 ---
 
-## 🔌 Real-time Communication
+## Real-time Communication
 
 ### Socket.IO Events
 
@@ -269,7 +269,7 @@ class WorkflowExecutor {
 
 ---
 
-## 🗄️ Data Layer
+## Data Layer
 
 ### Data Layer Pattern
 The backend uses a **Data Layer Abstraction Pattern** that allows switching between different storage backends without changing business logic.
@@ -321,7 +321,7 @@ The backend uses a **Data Layer Abstraction Pattern** that allows switching betw
 
 ---
 
-## 🔧 Services
+## Services
 
 ### GitService Architecture
 ```javascript
@@ -381,7 +381,7 @@ class WorkflowExecutor {
 
 ---
 
-## 🛡️ Middleware
+## Middleware
 
 ### Error Handler (`middleware/errorHandler.js`)
 ```javascript
@@ -422,7 +422,7 @@ const validateWorkflowId = (req, res, next) => {
 
 ---
 
-## ⚠️ Error Handling
+## Error Handling
 
 ### Error Response Format
 ```javascript
@@ -457,7 +457,7 @@ const validateWorkflowId = (req, res, next) => {
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Test Server (`test-server.js`)
 ```javascript
@@ -483,7 +483,7 @@ const { testDataLayer, testAPIEndpoints } = require('./test-server');
 
 ---
 
-## 🚀 Development Guide
+## Development Guide
 
 ### Project Structure
 ```
@@ -561,7 +561,7 @@ async newDataOperation(params) {
 
 ---
 
-## 🔍 Key Design Decisions
+## Key Design Decisions
 
 ### 1. **Shared Data Layer Instance**
 - **Problem**: Execution routes couldn't find workflows
@@ -590,7 +590,7 @@ async newDataOperation(params) {
 
 ---
 
-## 📈 Performance Considerations
+## Performance Considerations
 
 ### Memory Management
 - **Execution Tracking**: Active executions stored in Map with cleanup
@@ -609,7 +609,7 @@ async newDataOperation(params) {
 
 ---
 
-## 🔒 Security Considerations
+## Security Considerations
 
 ### Critical Security Features
 
@@ -648,7 +648,7 @@ async newDataOperation(params) {
 
 ---
 
-## 🚀 Future Enhancements
+## Future Enhancements
 
 ### Planned Features
 1. **Database Integration**: PostgreSQL/MongoDB adapters

@@ -33,15 +33,12 @@ import {
   TestTube, 
   Link, 
   Globe, 
-  Clipboard, 
-  FileText, 
-  Target, 
   Trash2, 
   Sparkles,
   Tag,
   CheckCircle2,
-  RotateCcw,
-  RotateCw
+  Check,
+  X
 } from 'lucide-react';
 
 // Branch node types will be defined after component definitions
@@ -1234,7 +1231,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
       // Analyze current layout
       const analysis = analyzeLayout(nodes, edges);
       if (!analysis.needsLayout) {
-        showSuccess('Layout looks good 😊');
+        showSuccess('Layout looks good');
         setIsBeautifying(false);
         return;
       }
@@ -1251,7 +1248,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
       // Save beautified state to history after animation completes
       setTimeout(() => {
         saveToHistory();
-        showSuccess('Beautified ✨');
+        showSuccess('Beautified');
       }, 650);
       
     } catch (error) {
@@ -1324,14 +1321,14 @@ function WorkflowEditor({ onWorkflowCreated }) {
                     title="Save"
                     disabled={!!nameValidationError}
                   >
-                    ✓
+                    <Check size={14} />
                   </button>
-                  <button 
+                  <button
                     onClick={handleCancelEdit}
                     className="edit-action-button cancel"
                     title="Cancel"
                   >
-                    ✕
+                    <X size={14} />
                   </button>
                 </div>
                 {nameValidationError && (
