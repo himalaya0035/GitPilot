@@ -12,7 +12,10 @@ import {
   Settings,
   TestTube,
   Link,
-  Tag
+  Tag,
+  Trash2,
+  X,
+  Check
 } from 'lucide-react';
 
 const branchTypeConfigs = {
@@ -439,14 +442,14 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
 
           <div className="modal-actions">
             <button type="button" onClick={onDelete} className="delete-button">
-              Delete Branch
+              <Trash2 size={14} /> Delete Node
             </button>
             <div className="action-buttons">
               <button type="button" onClick={onCancel} className="cancel-button">
-                Cancel
+                <X size={14} /> Cancel
               </button>
               <button type="submit" className="save-button">
-                Save Branch
+                <Check size={14} /> Save Node
               </button>
             </div>
           </div>

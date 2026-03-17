@@ -6,8 +6,10 @@ import {
   GitMerge, 
   ArrowUp, 
   ArrowDown, 
-  Trash2, 
-  Settings 
+  Trash2,
+  Settings,
+  X,
+  Check
 } from 'lucide-react';
 
 const operationConfigs = {
@@ -319,14 +321,14 @@ function OperationConfigModal({ edge, onSave, onCancel, onDelete }) {
 
           <div className="modal-actions">
             <button type="button" onClick={onDelete} className="delete-button">
-              Delete Operation
+              <Trash2 size={14} /> Delete Operation
             </button>
             <div className="action-buttons">
               <button type="button" onClick={onCancel} className="cancel-button">
-                Cancel
+                <X size={14} /> Cancel
               </button>
               <button type="submit" className="save-button">
-                Save Operation
+                <Check size={14} /> Save Operation
               </button>
             </div>
           </div>

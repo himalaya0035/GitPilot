@@ -187,68 +187,84 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 24px;
-  padding-right: 0px;
+  padding-top: 20px;
   border-top: 1px solid #eee;
-}
-
-.delete-button {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.3s;
-}
-
-.delete-button:hover {
-  background: #c82333;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
-}
-
-.action-buttons {
-  display: flex;
   gap: 12px;
 }
 
+/* Destructive — outlined, not filled, so it doesn't compete with Save */
+.delete-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: #dc3545;
+  border: 1.5px solid #dc3545;
+  padding: 9px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.delete-button:hover {
+  background: #fef2f2;
+  border-color: #b91c1c;
+  color: #b91c1c;
+}
+
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+/* Ghost/text — tertiary action, lowest visual weight */
 .cancel-button {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: #6b7280;
+  border: 1.5px solid #d1d5db;
+  padding: 9px 18px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
 .cancel-button:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #9ca3af;
 }
 
+/* Primary — highest visual weight */
 .save-button {
-  background: #007bff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #2563eb;
   color: white;
   border: none;
-  padding: 12px 20px;
+  padding: 9px 20px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
 }
 
 .save-button:hover {
-  background: #0056b3;
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 }
 
 /* Responsive Design */
@@ -270,16 +286,22 @@
   
   .modal-actions {
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     align-items: stretch;
   }
-  
-  .action-buttons {
-    justify-content: stretch;
+
+  .delete-confirm {
+    justify-content: space-between;
   }
-  
-  .action-buttons button {
+
+  .action-buttons {
+    margin-left: 0;
+  }
+
+  .action-buttons button,
+  .delete-button {
     flex: 1;
+    justify-content: center;
   }
 }
 
