@@ -11,6 +11,7 @@ const { Server } = require('socket.io');
 // Import services
 const workflowRoutes = require('./routes/workflows');
 const executionRoutes = require('./routes/execution');
+const executionHistoryRoutes = require('./routes/executions');
 const gitRoutes = require('./routes/git');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/execution', executionRoutes);
+app.use('/api/executions', executionHistoryRoutes);
 app.use('/api/git', gitRoutes);
 
 // Health check

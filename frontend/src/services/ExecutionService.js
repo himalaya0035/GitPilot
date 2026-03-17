@@ -211,6 +211,43 @@ class ExecutionService {
   }
 
   /**
+   * Get execution history (optionally filtered by workflowId)
+   */
+  async getExecutionHistory(workflowId = null) {
+    try {
+      const url = workflowId
+        ? `${this.baseUrl}/api/executions?workflowId=${encodeURIComponent(workflowId)}`
+        : `${this.baseUrl}/api/executions`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to get execution history');
+      }
+      return result.data;
+    } catch (error) {
+      console.error('Failed to get execution history:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get full execution detail (including logs and operations)
+   */
+  async getExecutionDetail(executionId) {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/executions/${executionId}`);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to get execution detail');
+      }
+      return result.data;
+    } catch (error) {
+      console.error('Failed to get execution detail:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Add event listener
    */
   on(event, callback) {

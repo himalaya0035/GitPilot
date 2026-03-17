@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   useNodesState,
@@ -16,25 +16,26 @@ import 'reactflow/dist/style.css';
 import WorkflowManager from './WorkflowManager';
 import './WorkflowRunner.css';
 import { executionService, workflowService, storageAdapter } from '../services';
-import { 
-  Factory, 
-  Wrench, 
-  Rocket, 
-  AlertTriangle, 
-  Settings, 
-  TestTube, 
-  Link, 
-  Globe, 
-  FolderOpen, 
-  FileText, 
-  BarChart3, 
-  Clock, 
-  Clipboard, 
-  Search, 
+import {
+  Factory,
+  Wrench,
+  Rocket,
+  AlertTriangle,
+  Settings,
+  TestTube,
+  Link,
+  Globe,
+  FolderOpen,
+  FileText,
+  BarChart3,
+  Clock,
+  Clipboard,
+  Search,
   AlertCircle,
   ArrowLeft,
   Tag,
-  Trash2
+  Trash2,
+  History
 } from 'lucide-react';
 
 // Branch node types will be defined after component definitions
@@ -66,6 +67,16 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [currentOperation, setCurrentOperation] = useState(null);
   const [currentExecutionId, setCurrentExecutionId] = useState(null);
+  const [rightPanelTab, setRightPanelTab] = useState('logs');
+  const [executionHistory, setExecutionHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [selectedHistoryRecord, setSelectedHistoryRecord] = useState(null);
+  const [historicalNodes, setHistoricalNodes] = useState([]);
+  const [historicalEdges, setHistoricalEdges] = useState([]);
+
+  // Ref to always hold the latest workflow without stale closures in socket handlers
+  const workflowRef = useRef(workflow);
+  workflowRef.current = workflow;
 
   // Load saved repositories from localStorage
   useEffect(() => {
@@ -132,19 +143,22 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     const handleExecutionCompleted = (data) => {
       addLogEntry('Workflow execution completed successfully!', 'success');
       setIsExecuting(false);
+      loadExecutionHistory();
     };
 
     const handleExecutionFailed = (data) => {
       addLogEntry(`Workflow execution failed: ${data.error}`, 'error');
       setIsExecuting(false);
+      loadExecutionHistory();
     };
 
     const handleExecutionStopped = (data) => {
       // Use a more accurate message that doesn't claim the command was aborted
-      const message = data.message
+      const message = data.message;
       addLogEntry(message, 'warning');
       setIsExecuting(false);
       setCurrentExecutionId(null);
+      loadExecutionHistory();
     };
 
     const handleOperationStarted = (data) => {
@@ -586,6 +600,71 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     setExecutionLog([]);
   };
 
+  const loadExecutionHistory = async () => {
+    const wfId = workflowRef.current?.id;
+    if (!wfId) return;
+    setIsLoadingHistory(true);
+    try {
+      const history = await executionService.getExecutionHistory(wfId);
+      setExecutionHistory(history || []);
+    } catch (err) {
+      console.error('Failed to load execution history:', err);
+      setExecutionHistory([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const loadHistoricalExecution = async (record) => {
+    setSelectedHistoryRecord(record);
+    try {
+      const detail = await executionService.getExecutionDetail(record.id);
+      setSelectedHistoryRecord(detail);
+
+      // Reconstruct frozen nodes from saved branch states
+      const frozenNodes = (detail.branches || []).map(branch => ({
+        id: branch.id,
+        type: branch.type,
+        position: branch.position || { x: 0, y: 0 },
+        data: {
+          name: branch.name,
+          branchType: branch.type,
+          isRemote: branch.isRemote || false,
+          autoPull: false,
+          autoPush: false,
+          deleteConfig: { enabled: false, remote: false, force: false, remoteName: 'origin' },
+          tags: branch.tags || [],
+          status: branch.status || 'pending',
+        }
+      }));
+
+      // Reconstruct frozen edges from saved operation states (filter auto- ops)
+      const frozenEdges = (detail.operations || [])
+        .filter(op =>
+          !op.id.startsWith('auto-pull-') &&
+          !op.id.startsWith('auto-push-') &&
+          !op.id.startsWith('auto-tag-') &&
+          !op.id.startsWith('auto-delete-')
+        )
+        .map(op => ({
+          id: op.id,
+          source: op.source,
+          target: op.target,
+          type: 'operation',
+          data: {
+            operationType: op.type,
+            params: op.params || {},
+            status: op.status || 'pending',
+          }
+        }));
+
+      setHistoricalNodes(frozenNodes);
+      setHistoricalEdges(frozenEdges);
+    } catch (err) {
+      console.error('Failed to load historical execution:', err);
+    }
+  };
+
   // const simulateWorkflowExecution = async () => {
   //   // const operationMap = new Map(edges.map(edge => [edge.id, edge]));
   //   // const branchMap = new Map(nodes.map(node => [node.id, node]));
@@ -792,14 +871,16 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
         <div className="workflow-visualization">
           <ReactFlowProvider>
             <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
+              nodes={selectedHistoryRecord ? historicalNodes : nodes}
+              edges={selectedHistoryRecord ? historicalEdges : edges}
+              onNodesChange={selectedHistoryRecord ? undefined : onNodesChange}
+              onEdgesChange={selectedHistoryRecord ? undefined : onEdgesChange}
               nodeTypes={branchNodeTypes}
               edgeTypes={{
                 operation: OperationEdge,
               }}
+              nodesDraggable={!selectedHistoryRecord}
+              nodesConnectable={!selectedHistoryRecord}
               fitView
             >
               <Controls />
@@ -934,65 +1015,169 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
           </div>
         ) : (
           <div className="execution-panel">
-            <div className="panel-header">
-              <h3>Execution Logs</h3>
-              <div className="log-controls">
-                <button onClick={clearLogs} className="clear-button">
-                  Clear
-                </button>
-                <button onClick={exportLogs} className="export-button">
-                  Export
-                </button>
-              </div>
+            <div className="panel-tabs">
+              <button
+                className={`panel-tab ${rightPanelTab === 'logs' ? 'active' : ''}`}
+                onClick={() => { setRightPanelTab('logs'); setSelectedHistoryRecord(null); setHistoricalNodes([]); setHistoricalEdges([]); }}
+              >
+                <Clipboard size={14} />
+                Execution Logs
+              </button>
+              <button
+                className={`panel-tab ${rightPanelTab === 'history' ? 'active' : ''}`}
+                onClick={() => { setRightPanelTab('history'); loadExecutionHistory(); }}
+              >
+                <History size={14} />
+                History
+              </button>
             </div>
-            
-            <div className="execution-log">
-              {executionLog.length === 0 ? (
-                <div className="no-logs">
-                  <div className="no-logs-icon">
-                    <Clipboard size={24} />
+
+            {rightPanelTab === 'logs' ? (
+              <>
+                <div className="panel-header">
+                  <h3>Execution Logs</h3>
+                  <div className="log-controls">
+                    <button onClick={clearLogs} className="clear-button">
+                      Clear
+                    </button>
+                    <button onClick={exportLogs} className="export-button">
+                      Export
+                    </button>
                   </div>
-                  <div className="no-logs-text">No execution logs yet</div>
-                  <div className="no-logs-subtext">Start a workflow execution to see logs here</div>
                 </div>
-              ) : (
-                <div className="log-entries">
-                   {executionLog.map((entry, index) => {
-                     const isSeparator = entry.type === 'separator';
-                     return (
-                       <div key={index} className={`log-entry ${entry.type} ${isSeparator ? 'separator' : ''}`}>
-                         <div className="log-content">
-                           <div className="log-message">{entry.command ? "Command:" : entry.message}</div>
-                           {entry.command && (
-                             <div className="log-command">
-                               <code>{entry.command}</code>
-                             </div>
-                           )}
-                         </div>
-                         <div className="log-time">{entry.timestamp}</div>
-                       </div>
-                     );
-                   })}
-                   
-                   {/* Processing indicator */}
-                   {currentOperation && isExecuting && (
-                     <div className="log-entry processing">
-                       <div className="log-content">
-                         <div className="log-message">
-                           Executing {currentOperation.operationType} operation
-                           <span className="processing-dots">
-                             <span>.</span>
-                             <span>.</span>
-                             <span>.</span>
-                           </span>
-                         </div>
-                       </div>
-                       <div className="log-time">{new Date().toLocaleTimeString()}</div>
-                     </div>
-                   )}
+
+                <div className="execution-log">
+                  {executionLog.length === 0 ? (
+                    <div className="no-logs">
+                      <div className="no-logs-icon">
+                        <Clipboard size={24} />
+                      </div>
+                      <div className="no-logs-text">No execution logs yet</div>
+                      <div className="no-logs-subtext">Start a workflow execution to see logs here</div>
+                    </div>
+                  ) : (
+                    <div className="log-entries">
+                      {executionLog.map((entry, index) => {
+                        const isSeparator = entry.type === 'separator';
+                        return (
+                          <div key={index} className={`log-entry ${entry.type} ${isSeparator ? 'separator' : ''}`}>
+                            <div className="log-content">
+                              <div className="log-message">{entry.command ? "Command:" : entry.message}</div>
+                              {entry.command && (
+                                <div className="log-command">
+                                  <code>{entry.command}</code>
+                                </div>
+                              )}
+                            </div>
+                            <div className="log-time">{entry.timestamp}</div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Processing indicator */}
+                      {currentOperation && isExecuting && (
+                        <div className="log-entry processing">
+                          <div className="log-content">
+                            <div className="log-message">
+                              Executing {currentOperation.operationType} operation
+                              <span className="processing-dots">
+                                <span>.</span>
+                                <span>.</span>
+                                <span>.</span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="log-time">{new Date().toLocaleTimeString()}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            ) : selectedHistoryRecord ? (
+              <div className="history-detail-panel">
+                <div className="panel-header">
+                  <button
+                    className="back-to-history-button"
+                    onClick={() => { setSelectedHistoryRecord(null); setHistoricalNodes([]); setHistoricalEdges([]); }}
+                  >
+                    ← Back to History
+                  </button>
+                  <span className={`history-item-status status-${selectedHistoryRecord.status}`}>
+                    {selectedHistoryRecord.status}
+                  </span>
+                </div>
+                <div className="execution-log">
+                  {!selectedHistoryRecord.logs ? (
+                    <div className="history-loading">Loading logs...</div>
+                  ) : selectedHistoryRecord.logs.length === 0 ? (
+                    <div className="no-logs">
+                      <div className="no-logs-text">No logs recorded</div>
+                    </div>
+                  ) : (
+                    <div className="log-entries">
+                      {selectedHistoryRecord.logs.map((entry, index) => {
+                        const isSeparator = entry.type === 'separator';
+                        return (
+                          <div key={index} className={`log-entry ${entry.type} ${isSeparator ? 'separator' : ''}`}>
+                            <div className="log-content">
+                              <div className="log-message">{entry.command ? "Command:" : entry.message}</div>
+                              {entry.command && (
+                                <div className="log-command">
+                                  <code>{entry.command}</code>
+                                </div>
+                              )}
+                            </div>
+                            <div className="log-time">{entry.timestamp}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="history-panel">
+                {isLoadingHistory ? (
+                  <div className="history-loading">Loading history...</div>
+                ) : executionHistory.length === 0 ? (
+                  <div className="no-history">
+                    <div className="no-history-icon">
+                      <History size={24} />
+                    </div>
+                    <div className="no-history-text">No execution history yet</div>
+                    <div className="no-history-subtext">Run a workflow to see its history here</div>
+                  </div>
+                ) : (
+                  <div className="history-list">
+                    {executionHistory.map(record => (
+                      <div
+                        key={record.id}
+                        className="history-item"
+                        onClick={() => loadHistoricalExecution(record)}
+                      >
+                        <div className="history-item-header">
+                          <span className={`history-item-status status-${record.status}`}>
+                            {record.status}
+                          </span>
+                          <span className="history-item-time">
+                            {record.startTime ? new Date(record.startTime).toLocaleString() : 'Unknown'}
+                          </span>
+                        </div>
+                        {record.durationMs != null && (
+                          <div className="history-item-duration">
+                            Duration: {(record.durationMs / 1000).toFixed(1)}s
+                          </div>
+                        )}
+                        {record.error && (
+                          <div className="history-item-error">{record.error}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

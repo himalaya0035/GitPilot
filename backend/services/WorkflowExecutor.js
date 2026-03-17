@@ -52,6 +52,7 @@ class WorkflowExecutor {
       // Mark execution as completed
       execution.status = 'completed';
       execution.endTime = new Date().toISOString();
+      await this._persistExecution(execution, workflow);
       this.emitUpdate(executionId, 'execution-completed', {
         executionId,
         status: 'completed',
@@ -69,7 +70,7 @@ class WorkflowExecutor {
         execution.status = 'stopped';
         execution.endTime = new Date().toISOString();
         execution.error = 'Workflow Execution stopped by user';
-
+        await this._persistExecution(execution, workflow);
         this.emitUpdate(executionId, 'execution-aborted', {
           executionId,
           status: 'stopped',
@@ -79,7 +80,7 @@ class WorkflowExecutor {
         execution.status = 'failed';
         execution.endTime = new Date().toISOString();
         execution.error = error.message;
-
+        await this._persistExecution(execution, workflow);
         this.emitUpdate(executionId, 'execution-failed', {
           executionId,
           status: 'failed',
@@ -569,6 +570,35 @@ class WorkflowExecutor {
    */
   getExecutionStatus(executionId) {
     return this.executions.get(executionId);
+  }
+
+  /**
+   * Persist a completed execution to the data layer (non-fatal)
+   */
+  async _persistExecution(execution, workflow) {
+    if (execution.id === 'preview-execution') {
+      return;
+    }
+    try {
+      const executionDataLayer = require('../data/sharedExecutionDataLayer');
+      await executionDataLayer.saveExecution({
+        id:             execution.id,
+        workflowId:     execution.workflowId,
+        workflowName:   workflow.name,
+        repositoryPath: this.gitService.workingDirectory || null,
+        status:         execution.status,
+        startTime:      execution.startTime,
+        endTime:        execution.endTime || null,
+        durationMs:     this.getExecutionDuration(execution),
+        operations:     Array.from(execution.operations.values()),
+        branches:       Array.from(execution.branches.values()),
+        logs:           execution.logs,
+        error:          execution.error || null
+      });
+    } catch (err) {
+      console.error(`Failed to persist execution ${execution.id}:`, err);
+      // Non-fatal: do not throw
+    }
   }
 
   /**
