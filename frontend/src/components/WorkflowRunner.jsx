@@ -14,6 +14,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import WorkflowManager from './WorkflowManager';
+import RepositoryConnectModal from './RepositoryConnectModal';
 import './WorkflowRunner.css';
 import { executionService, workflowService, storageAdapter } from '../services';
 import {
@@ -59,9 +60,6 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   const [showWorkflowSelector, setShowWorkflowSelector] = useState(false);
   const [repositoryPath, setRepositoryPath] = useState('');
   const [showRepositorySelector, setShowRepositorySelector] = useState(false);
-  const [modalRepositoryPath, setModalRepositoryPath] = useState('');
-  const [modalValidationError, setModalValidationError] = useState('');
-  const [savedRepositories, setSavedRepositories] = useState([]);
   const [previewMode, setPreviewMode] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -78,18 +76,6 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   const workflowRef = useRef(workflow);
   workflowRef.current = workflow;
 
-  // Load saved repositories from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('gitPilotSavedRepositories');
-    if (saved) {
-      try {
-        setSavedRepositories(JSON.parse(saved));
-      } catch (error) {
-        console.error('Error loading saved repositories:', error);
-        setSavedRepositories([]);
-      }
-    }
-  }, []);
 
   // Refresh workflow data from storage when component mounts or workflow ID changes
   useEffect(() => {
@@ -304,43 +290,6 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     };
   }, []);
 
-  // Save repositories to localStorage
-  const saveRepositoryToStorage = (repoPath) => {
-    const repoName = repoPath.split('/').pop() || 'Unknown Repository';
-    const newRepo = {
-      id: Date.now().toString(),
-      name: repoName,
-      path: repoPath,
-      lastUsed: new Date().toISOString()
-    };
-
-    setSavedRepositories(prev => {
-      // Remove if already exists
-      const filtered = prev.filter(repo => repo.path !== repoPath);
-      // Add new repo at the beginning
-      const updated = [newRepo, ...filtered];
-      // Keep only last 5
-      const limited = updated.slice(0, 5);
-      
-      localStorage.setItem('gitPilotSavedRepositories', JSON.stringify(limited));
-      return limited;
-    });
-  };
-
-  // Remove repository from saved list
-  const removeSavedRepository = (repoId) => {
-    setSavedRepositories(prev => {
-      const updated = prev.filter(repo => repo.id !== repoId);
-      localStorage.setItem('gitPilotSavedRepositories', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  // Select a saved repository
-  const selectSavedRepository = (repoPath) => {
-    setModalRepositoryPath(repoPath);
-    setModalValidationError('');
-  };
 
   const handleWorkflowSelected = (selectedWorkflow) => {
     if (onWorkflowChange) {
@@ -461,43 +410,6 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
     }
   }, [executionLog]);
 
-  const validateRepositoryPath = (path) => {
-    if (!path || path.trim() === '') {
-      return 'Repository path is required';
-    }
-
-    // Check for basic path format
-    const trimmedPath = path.trim();
-    
-    // Must be an absolute path (starts with / on Unix or C:\ on Windows)
-    if (!trimmedPath.startsWith('/') && !trimmedPath.match(/^[A-Za-z]:\\/)) {
-      return 'Invalid directory';
-    }
-
-    // Check for invalid characters
-    // eslint-disable-next-line no-control-regex
-    const invalidChars = /[<>:"|?*\u0000-\u001f]/;
-    if (invalidChars.test(trimmedPath)) {
-      return 'Invalid directory';
-    }
-
-    // Check for reasonable length
-    if (trimmedPath.length < 3) {
-      return 'Invalid directory';
-    }
-
-    if (trimmedPath.length > 500) {
-      return 'Invalid directory';
-    }
-
-    // Check for common directory patterns
-    const commonDirs = ['/tmp', '/var', '/etc', '/usr', '/bin', '/sbin', '/dev', '/proc', '/sys'];
-    if (commonDirs.some(dir => trimmedPath === dir || trimmedPath.startsWith(dir + '/'))) {
-      return 'Invalid directory';
-    }
-
-    return null; // Valid path
-  };
 
   // const updateBranchStatus = (branchId, status) => {
   //   setNodes(prev => prev.map(node => 
@@ -815,11 +727,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
               <div>
                 <span className="repository-path">{repositoryPath || 'NOT SELECTED'}</span>
                 <button 
-                  onClick={() => {
-                    setModalRepositoryPath(repositoryPath);
-                    setModalValidationError('');
-                    setShowRepositorySelector(true);
-                  }}
+                  onClick={() => setShowRepositorySelector(true)}
                   className="change-repository-button"
                 >
                   Change
@@ -1209,147 +1117,15 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
       )}
 
       {showRepositorySelector && (
-        <div className="modal-overlay">
-          <div className="repository-selector-modal">
-            <div className="modal-header">
-              <h2>Update Repository Path</h2>
-              <button 
-                className="close-button"
-                onClick={() => {
-                  setShowRepositorySelector(false);
-                  setModalRepositoryPath('');
-                  setModalValidationError('');
-                }}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-content">
-              {/* Saved Repositories Section */}
-              {savedRepositories.length > 0 && (
-                <div className="saved-repositories-section">
-                  <h3>Recently Used Repositories</h3>
-                  <div className="saved-repositories-list">
-                    {savedRepositories.map((repo) => (
-                      <div key={repo.id} className="saved-repository-item">
-                        <div className="repository-info" onClick={() => selectSavedRepository(repo.path)}>
-                          <div className="saved-repository-path">
-                            {(() => {
-                              const pathParts = repo.path.split('/');
-                              const repoName = pathParts[pathParts.length - 1];
-                              const parentPath = pathParts.slice(0, -1).join('/');
-                              return (
-                                <>
-                                  <span className="path-prefix">{parentPath}/</span>
-                                  <span className="path-highlight">{repoName}</span>
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                        <button 
-                          className="remove-repository-button"
-                          onClick={() => removeSavedRepository(repo.id)}
-                          title="Remove from saved repositories"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/>
-                            <line x1="6" y1="6" x2="18" y2="18"/>
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              <div className="repository-path-input-container">
-                <label>Git Repository Path</label>
-                
-                <div className="repository-path-input-wrapper">
-                  <input
-                    type="text"
-                    value={modalRepositoryPath}
-                    onChange={(e) => {
-                      const newPath = e.target.value;
-                      setModalRepositoryPath(newPath);
-                      const error = validateRepositoryPath(newPath);
-                      setModalValidationError(error || '');
-                    }}
-                    placeholder="Enter full Git repository path (e.g., /home/user/my-repo)"
-                    className={`repository-path-text-input ${modalValidationError ? 'error' : ''}`}
-                  />
-                  
-                  {modalValidationError && (
-                    <div className="path-validation-error">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="15" y1="9" x2="9" y2="15"/>
-                        <line x1="9" y1="9" x2="15" y2="15"/>
-                      </svg>
-                      {modalValidationError}
-                    </div>
-                  )}
-                  
-                  {modalRepositoryPath && (
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setModalRepositoryPath('');
-                        setModalValidationError('');
-                      }}
-                      className="clear-button"
-                      title="Clear selection"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                      </svg>
-                      Clear
-                    </button>
-                  )}
-                </div>
-                
-                <div className="repository-path-help">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M9,12l2,2 4-4"/>
-                  </svg>
-                  <strong>Note:</strong> Browser security prevents getting absolute paths. You must enter the full repository path manually.
-                </div>
-                
-                <div className="modal-actions">
-                  <button 
-                    onClick={() => {
-                      if (!modalValidationError && modalRepositoryPath.trim()) {
-                        const trimmedPath = modalRepositoryPath.trim();
-                        setRepositoryPath(trimmedPath);
-                        saveRepositoryToStorage(trimmedPath);
-                        setShowRepositorySelector(false);
-                        setModalRepositoryPath('');
-                        setModalValidationError('');
-                      }
-                    }}
-                    className="save-button"
-                    disabled={!!modalValidationError || !modalRepositoryPath.trim()}
-                  >
-                    Save
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setShowRepositorySelector(false);
-                      setModalRepositoryPath('');
-                      setModalValidationError('');
-                    }}
-                    className="cancel-button"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <RepositoryConnectModal
+          initialPath={repositoryPath}
+          onSave={(path) => {
+            setRepositoryPath(path);
+            setShowRepositorySelector(false);
+          }}
+          onCancel={() => setShowRepositorySelector(false)}
+          showInfo
+        />
       )}
     </div>
   );

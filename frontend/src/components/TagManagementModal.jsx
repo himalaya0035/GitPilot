@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Plus, Tag } from 'lucide-react';
+import { Trash2, Plus, Tag, X } from 'lucide-react';
 import './TagManagementModal.css';
 
 function TagManagementModal({ branch, onSave, onCancel }) {
@@ -49,14 +49,16 @@ function TagManagementModal({ branch, onSave, onCancel }) {
       <div className="tag-management-modal">
         <div className="modal-header">
           <div className="header-content">
-            <Tag size={12} className="tag-icon" />
+            <div className="tag-icon-container">
+              <Tag size={20} />
+            </div>
             <div>
               <h3>Tag Management</h3>
               <p className="branch-info">Manage Git tags for <strong>{branch.data.branchName}</strong></p>
             </div>
           </div>
-          <button className="close-button" onClick={onCancel}>
-            ×
+          <button className="close-button" onClick={onCancel} aria-label="Close">
+            <X size={20} />
           </button>
         </div>
 

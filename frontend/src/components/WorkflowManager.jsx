@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, ClipboardList, Clock } from 'lucide-react';
+import { Upload, ClipboardList, Clock, Search, X, Copy, Download, Trash2, Play } from 'lucide-react';
 import { useWorkflows } from '../hooks/useWorkflows';
 import { useNotification } from '../contexts/NotificationContext';
 import './WorkflowManager.css';
@@ -131,9 +131,11 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
   if (loading) {
     return (
       <div className="workflow-manager">
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading workflows...</p>
+        <div className="workflow-manager-content">
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Gathering your workflows...</p>
+          </div>
         </div>
       </div>
     );
@@ -144,7 +146,9 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
       <div className="workflow-manager-content">
         <div className="workflow-manager-header">
           <h2>Workflow Manager</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={onClose} aria-label="Close">
+            <X size={20} />
+          </button>
         </div>
 
         {error && (
@@ -155,119 +159,121 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
         )}
 
         <div className="workflow-manager-body">
-        <div className="workflow-actions">
-          <div className="search-section">
-            <input
-              type="text"
-              placeholder="Search workflows..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
+          <div className="workflow-actions">
+            <div className="search-section">
+              <Search className="search-icon" size={18} />
+              <input
+                type="text"
+                placeholder="Search your workflows..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+            </div>
+
+            {!showOnlyLoad && (
+              <div className="import-section">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportWorkflow}
+                  id="import-workflow-file"
+                  style={{ display: 'none' }}
+                />
+                <button 
+                  type="button"
+                  onClick={() => document.getElementById('import-workflow-file').click()}
+                  className="import-button"
+                >
+                  <Upload size={16} /> Import
+                </button>
+              </div>
+            )}
           </div>
 
-          {!showOnlyLoad && (
-            <div className="import-section">
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImportWorkflow}
-                id="import-workflow-file"
-                style={{ display: 'none' }}
-              />
-              <button 
-                type="button"
-                onClick={() => document.getElementById('import-workflow-file').click()}
-                className="import-button"
-              >
-                <Upload size={16} /> Import Workflow
-              </button>
-            </div>
-          )}
-        </div>
+          <div className="workflows-list">
+            {filteredWorkflows.length === 0 ? (
+              <div className="empty-state">
+                <ClipboardList size={48} className="empty-icon" />
+                <h3>No workflows found</h3>
+                <p>
+                  {searchQuery ? "We couldn't find any workflows matching your search." : "You haven't created any workflows yet."}
+                </p>
+              </div>
+            ) : (
+              filteredWorkflows.map((workflow, index) => (
+                <div
+                  key={workflow.id}
+                  className={`workflow-item ${selectedWorkflow?.id === workflow.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedWorkflow(workflow)}
+                >
+                  <div className="workflow-info">
+                    <h3 className="workflow-name">{workflow.name}</h3>
+                    <p className="workflow-description">
+                      {workflow.description || 'No description provided'}
+                    </p>
+                    <div className="workflow-meta">
+                      <span className="created-date">
+                        <Clock size={12} />
+                        {getDisplayDate(workflow)}
+                        {isMostRecent(workflow, index) && (
+                          <span className="label-recent">Current</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
 
-        <div className="workflows-list">
-          {filteredWorkflows.length === 0 ? (
-            <div className="empty-state">
-              <ClipboardList size={48} className="empty-icon" />
-              <h3>No workflows found</h3>
-              <p>
-                {searchQuery ? 'No workflows match your search.' : 'Create your first workflow to get started.'}
-              </p>
-            </div>
-          ) : (
-            filteredWorkflows.map((workflow, index) => (
-              <div
-                key={workflow.id}
-                className={`workflow-item ${selectedWorkflow?.id === workflow.id ? 'selected' : ''}`}
-                onClick={() => setSelectedWorkflow(workflow)}
-              >
-                <div className="workflow-info">
-                  <h3 className="workflow-name">{workflow.name}</h3>
-                  <p className="workflow-description">
-                    {workflow.description || 'No description'}
-                  </p>
-                  <div className="workflow-meta">
-                    <span className="created-date">
-                      {isMostRecent(workflow, index) && (
-                        <Clock size={14} className="clock-icon" title="Most recently used" />
-                      )}
-                      {getDisplayDate(workflow)}
-                    </span>
+                  <div className="workflow-actions">
+                    <button
+                      className="action-button load-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLoadWorkflow(workflow);
+                      }}
+                      title="Load workflow"
+                    >
+                      <Play size={14} style={{ marginRight: '6px' }} /> Load
+                    </button>
+                    {!showOnlyLoad && (
+                      <>
+                        <button
+                          className="action-button duplicate-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDuplicateDialog(workflow);
+                            setDuplicateName(`${workflow.name} (Copy)`);
+                          }}
+                          title="Duplicate workflow"
+                        >
+                          <Copy size={14} />
+                        </button>
+                        <button
+                          className="action-button export-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleExportWorkflow(workflow);
+                          }}
+                          title="Export workflow"
+                        >
+                          <Download size={14} />
+                        </button>
+                        <button
+                          className="action-button delete-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDeleteConfirm(workflow.id);
+                          }}
+                          title="Delete workflow"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
-
-                <div className="workflow-actions">
-                  <button
-                    className="action-button load-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleLoadWorkflow(workflow);
-                    }}
-                    title="Load workflow"
-                  >
-                    Load
-                  </button>
-                  {!showOnlyLoad && (
-                    <>
-                      <button
-                        className="action-button duplicate-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowDuplicateDialog(workflow);
-                          setDuplicateName(`${workflow.name} (Copy)`);
-                        }}
-                        title="Duplicate workflow"
-                      >
-                        Copy
-                      </button>
-                      <button
-                        className="action-button export-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleExportWorkflow(workflow);
-                        }}
-                        title="Export workflow"
-                      >
-                        Export
-                      </button>
-                      <button
-                        className="action-button delete-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowDeleteConfirm(workflow.id);
-                        }}
-                        title="Delete workflow"
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
@@ -275,8 +281,8 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
       {showDeleteConfirm && (
         <div className="modal-overlay">
           <div className="confirmation-modal">
-            <h3>Delete Workflow</h3>
-            <p>Are you sure you want to delete this workflow? This action cannot be undone.</p>
+            <h3>Delete Workflow?</h3>
+            <p>This will permanently remove the workflow. This action cannot be undone.</p>
             <div className="modal-actions">
               <button
                 className="cancel-button"
@@ -285,10 +291,10 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
                 Cancel
               </button>
               <button
-                className="delete-button"
+                className="delete-button-confirm"
                 onClick={() => handleDeleteWorkflow(showDeleteConfirm)}
               >
-                Delete
+                Delete Workflow
               </button>
             </div>
           </div>
@@ -300,13 +306,14 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
         <div className="modal-overlay">
           <div className="confirmation-modal">
             <h3>Duplicate Workflow</h3>
-            <p>Enter a name for the duplicated workflow:</p>
+            <p>Give your new workflow a name:</p>
             <input
               type="text"
               value={duplicateName}
               onChange={(e) => setDuplicateName(e.target.value)}
               className="duplicate-name-input"
               placeholder="Workflow name"
+              autoFocus
             />
             <div className="modal-actions">
               <button
@@ -322,7 +329,7 @@ function WorkflowManager({ onLoadWorkflow, onClose, showOnlyLoad = false }) {
                 className="save-button"
                 onClick={() => handleDuplicateWorkflow(showDuplicateDialog)}
               >
-                Duplicate
+                Create Duplicate
               </button>
             </div>
           </div>

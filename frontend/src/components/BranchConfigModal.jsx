@@ -15,44 +15,46 @@ import {
   Tag,
   Trash2,
   X,
-  Check
+  Check,
+  ChevronDown,
+  Info
 } from 'lucide-react';
 
 const branchTypeConfigs = {
   production: {
-    title: 'Production Branch Configuration',
-    icon: <Factory size={20} />,
-    description: 'Main production branch'
+    title: 'Production Branch',
+    icon: <Factory size={24} />,
+    description: 'Main production branch for stable releases'
   },
   feature: {
-    title: 'Feature Branch Configuration',
-    icon: <Wrench size={20} />,
-    description: 'Feature development branch'
+    title: 'Feature Branch',
+    icon: <Wrench size={24} />,
+    description: 'Developing new features and enhancements'
   },
   release: {
-    title: 'Release Branch Configuration',
-    icon: <Rocket size={20} />,
-    description: 'Release preparation branch'
+    title: 'Release Branch',
+    icon: <Rocket size={24} />,
+    description: 'Final preparation for production release'
   },
   hotfix: {
-    title: 'Hotfix Branch Configuration',
-    icon: <AlertTriangle size={20} />,
-    description: 'Critical bug fix branch'
+    title: 'Hotfix Branch',
+    icon: <AlertTriangle size={24} />,
+    description: 'Urgent fixes for critical production issues'
   },
   develop: {
-    title: 'Develop Branch Configuration',
-    icon: <Settings size={20} />,
-    description: 'Integration branch for features'
+    title: 'Develop Branch',
+    icon: <Settings size={24} />,
+    description: 'Main integration branch for development'
   },
   staging: {
-    title: 'Staging Branch Configuration',
-    icon: <TestTube size={20} />,
-    description: 'Pre-production testing environment'
+    title: 'Staging Branch',
+    icon: <TestTube size={24} />,
+    description: 'Environment for pre-production quality assurance'
   },
   integration: {
-    title: 'Integration Branch Configuration',
-    icon: <Link size={20} />,
-    description: 'Integration testing and validation branch'
+    title: 'Integration Branch',
+    icon: <Link size={24} />,
+    description: 'Merging and testing multiple feature branches'
   }
 };
 
@@ -65,7 +67,7 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const dropdownRef = useRef(null);
   const listRef = useRef(null);
-  const config = branchTypeConfigs[branch.data.branchType];
+  const config = branchTypeConfigs[branch.data.branchType] || branchTypeConfigs.feature;
   const { showWarning } = useNotification();
 
   useEffect(() => {
@@ -79,7 +81,7 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
       deleteConfig: branch.data.deleteConfig || { enabled: false, remote: false, force: false, remoteName: 'origin' },
       description: branch.data.description || '',
     });
-  }, [branch, config]);
+  }, [branch]);
 
   // Debounced server-side search
   useEffect(() => {
@@ -129,13 +131,6 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
 
   // Handle tag modal
   const handleTagSave = (tagData) => {
-    const updatedBranch = {
-      ...branch,
-      data: {
-        ...branch.data,
-        tags: tagData.tags
-      }
-    };
     onSave({
       ...formData,
       tags: tagData.tags
@@ -172,15 +167,15 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
               <p className="branch-description">{config.description}</p>
             </div>
           </div>
-          <button className="close-button" onClick={onCancel}>
-            ×
+          <button className="close-button" onClick={onCancel} aria-label="Close">
+            <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-fields">
             <div className="form-group">
-              <label htmlFor="branchName">Branch Name *</label>
+              <label htmlFor="branchName">Branch Target *</label>
               {repositoryPath ? (
                 <div style={{ position: 'relative' }} ref={dropdownRef}>
                   <input
@@ -189,6 +184,7 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                     value={formData.branchName}
                     onChange={(e) => { handleInputChange('branchName', e.target.value); setShowSuggestions(true); setHighlightIndex(-1); }}
                     onFocus={() => setShowSuggestions(true)}
+                    className="branch-name-input"
                     style={{ width: '100%' }}
                     onKeyDown={(e) => {
                       if (!showSuggestions) return;
@@ -196,92 +192,46 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                       const lastIndex = filtered.length - 1;
                       if (e.key === 'ArrowDown') {
                         e.preventDefault();
-                        e.stopPropagation();
                         if (lastIndex >= 0) {
-                          setHighlightIndex((prev) => {
-                            const next = prev < 0 ? 0 : Math.min(prev + 1, lastIndex);
-                            return next;
-                          });
+                          setHighlightIndex((prev) => (prev < lastIndex ? prev + 1 : prev));
                         }
                       } else if (e.key === 'ArrowUp') {
                         e.preventDefault();
-                        e.stopPropagation();
                         if (lastIndex >= 0) {
                           setHighlightIndex((prev) => Math.max(prev - 1, 0));
                         }
                       } else if (e.key === 'Enter') {
                         if (highlightIndex >= 0 && filtered[highlightIndex]) {
                           e.preventDefault();
-                          e.stopPropagation();
                           handleInputChange('branchName', filtered[highlightIndex].name);
                           setShowSuggestions(false);
                           setHighlightIndex(-1);
                         }
                       } else if (e.key === 'Escape') {
-                        e.preventDefault();
-                        e.stopPropagation();
                         setShowSuggestions(false);
                         setHighlightIndex(-1);
                       }
                     }}
-                    placeholder={loadingBranches ? 'Loading branches…' : 'Search branches (local + remote)'}
+                    placeholder={loadingBranches ? 'Discovering branches...' : 'Type to search branches...'}
                     required
                   />
-                  {showSuggestions && (formData.branchName || '').length >= 1 && (() => {
-                    const filtered = branchOptions;
-                    if (filtered.length === 0) return null;
-                    return (
-                      <div ref={listRef} style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        zIndex: 20,
-                        background: '#fff',
-                        color: '#111827',
-                        borderRadius: 10,
-                        border: '1px solid rgba(99,102,241,0.25)',
-                        padding: 8,
-                        marginTop: 8,
-                        maxHeight: 220,
-                        overflowY: 'auto',
-                        boxShadow: '0 10px 30px rgba(99,102,241,0.15), 0 6px 12px rgba(0,0,0,0.06)'
-                      }}>
-                        {filtered.map((b, idx) => (
-                          <div
-                            key={`${b.scope}-${b.name}`}
-                            onMouseDown={() => { handleInputChange('branchName', b.name); setShowSuggestions(false); setHighlightIndex(-1); }}
-                            onMouseEnter={(e) => {
-                              setHighlightIndex(idx)
-                              e.stopPropagation();
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                              padding: '10px 12px',
-                              borderRadius: 8,
-                              background: highlightIndex === idx ? 'rgba(99,102,241,0.12)' : 'transparent',
-                              cursor: 'pointer',
-                              fontWeight: 600
-                            }}
-                          >
-                            <span style={{
-                              fontSize: 10,
-                              fontWeight: 700,
-                              padding: '2px 6px',
-                              borderRadius: 12,
-                              background: b.scope === 'remote' ? 'rgba(99,102,241,0.15)' : 'rgba(16,185,129,0.15)',
-                              color: b.scope === 'remote' ? '#6366f1' : '#10b981'
-                            }}>
-                              {b.scope}
-                            </span>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
+                  {showSuggestions && branchOptions.length > 0 && (
+                    <div ref={listRef} className="suggestions-dropdown">
+                      {branchOptions.map((b, idx) => (
+                        <div
+                          key={`${b.scope}-${b.name}`}
+                          className={`suggestion-item ${highlightIndex === idx ? 'highlighted' : ''}`}
+                          onMouseDown={() => { handleInputChange('branchName', b.name); setShowSuggestions(false); setHighlightIndex(-1); }}
+                          onMouseEnter={() => setHighlightIndex(idx)}
+                        >
+                          <span className={`suggestion-badge badge-${b.scope}`}>
+                            {b.scope}
+                          </span>
+                          <span className="suggestion-name">{b.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <input
@@ -289,24 +239,11 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                   id="branchName"
                   value={formData.branchName}
                   onChange={(e) => handleInputChange('branchName', e.target.value)}
-                  style={{ width: '100%' }}
-                  placeholder="e.g., main, feature/user-auth"
+                  placeholder="e.g., main, feature/auth"
                   required
                 />
               )}
             </div>
-
-            <div className="form-group">
-              <label htmlFor="description">Description</label>
-              <textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Optional description of this branch's purpose"
-                rows="1"
-              />
-            </div>
-
 
             <div className="form-group">
               <div className="checkbox-with-input">
@@ -316,19 +253,20 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                     checked={formData.autoPull}
                     onChange={(e) => handleInputChange('autoPull', e.target.checked)}
                   />
-                  <span className="checkmark"></span>
-                  Pull latest changes from remote
+                  <div>
+                    Pull Latest from Remote
+                    <small>Sync this branch with the remote repository before running any operations</small>
+                  </div>
                 </label>
-                <small>Pull this branch to its latest version before any operation</small>
                 {formData.autoPull && (
                   <div className="inline-input">
+                    <small>Remote Name</small>
                     <input
                       type="text"
                       value={formData.autoPullRemote}
                       onChange={(e) => handleInputChange('autoPullRemote', e.target.value)}
                       placeholder="origin"
                     />
-                    <small>Pull remote</small>
                   </div>
                 )}
               </div>
@@ -342,19 +280,20 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                     checked={formData.autoPush}
                     onChange={(e) => handleInputChange('autoPush', e.target.checked)}
                   />
-                  <span className="checkmark"></span>
-                  Push latest changes to remote
+                  <div>
+                    Push Results to Remote
+                    <small>Auto-upload changes to the remote branch after successful operations</small>
+                  </div>
                 </label>
-                <small>Push this branch to remote after its operations</small>
                 {formData.autoPush && (
                   <div className="inline-input">
+                    <small>Remote Name</small>
                     <input
                       type="text"
                       value={formData.autoPushRemote}
                       onChange={(e) => handleInputChange('autoPushRemote', e.target.value)}
                       placeholder="origin"
                     />
-                    <small>Push remote</small>
                   </div>
                 )}
               </div>
@@ -371,10 +310,11 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                       enabled: e.target.checked 
                     })}
                   />
-                  <span className="checkmark"></span>
-                  Delete this branch
+                  <div>
+                    Ephemeral Branch (Automated Cleanup)
+                    <small>Mark this branch for deletion after the workflow successfully completes</small>
+                  </div>
                 </label>
-                 <small>Delete this branch after its operations</small>
                 {formData.deleteConfig?.enabled && (
                   <div className="delete-options">
                     <label className="checkbox-label">
@@ -386,8 +326,7 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                           force: e.target.checked 
                         })}
                       />
-                      <span className="checkmark"></span>
-                      Force delete
+                      <div>Force Delete <small>Bypass Git safety checks</small></div>
                     </label>
                     <label className="checkbox-label">
                       <input
@@ -398,11 +337,11 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                           remote: e.target.checked 
                         })}
                       />
-                      <span className="checkmark"></span>
-                      Delete remote branch
+                      <div>Clear Remote <small>Also delete from the remote repository</small></div>
                     </label>
                     {formData.deleteConfig?.remote && (
                       <div className="inline-input">
+                         <small>Remote</small>
                          <input
                            type="text"
                            value={formData.deleteConfig?.remoteName || ''}
@@ -412,7 +351,6 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
                            })}
                            placeholder="origin"
                          />
-                        <small>Remote name</small>
                       </div>
                     )}
                   </div>
@@ -421,35 +359,35 @@ function BranchConfigModal({ branch, repositoryPath, onSave, onCancel, onDelete 
             </div>
 
             <div className="form-group">
-              <label>Tag Management</label>
+              <label>Git Tags</label>
               <div className="tag-management-section">
                 <div className="tag-info">
                   <span className="tag-count">
-                    {branch.data.tags?.length || 0} tag{(branch.data.tags?.length || 0) !== 1 ? 's' : ''} configured
+                    {branch.data.tags?.length || 0} tag{(branch.data.tags?.length || 0) !== 1 ? 's' : ''} defined
                   </span>
-                  <small>Manage Git tags for this branch</small>
+                  <small>Tags help mark specific points in your workflow</small>
                 </div>
                 <button 
                   type="button" 
                   onClick={() => setShowTagModal(true)}
                   className="manage-tags-button"
                 >
-                  <Tag size={16} /> Manage Tags
+                  <Tag size={16} /> Update Tags
                 </button>
               </div>
             </div>
           </div>
 
           <div className="modal-actions">
-            <button type="button" onClick={onDelete} className="delete-button">
-              <Trash2 size={14} /> Delete Node
+            <button type="button" onClick={onDelete} className="delete-button" title="Remove node from workflow">
+              <Trash2 size={16} /> Delete Node
             </button>
             <div className="action-buttons">
               <button type="button" onClick={onCancel} className="cancel-button">
-                <X size={14} /> Cancel
+                Cancel
               </button>
               <button type="submit" className="save-button">
-                <Check size={14} /> Save Node
+                <Check size={18} /> Save Changes
               </button>
             </div>
           </div>
