@@ -4,7 +4,7 @@ import WorkflowEditor from './components/WorkflowEditor';
 import WorkflowRunner from './components/WorkflowRunner';
 import WorkflowManager from './components/WorkflowManager';
 import { NotificationProvider } from './contexts/NotificationContext';
-import { Edit3, Play } from 'lucide-react';
+import { Edit3, Play, GitMerge } from 'lucide-react';
 
 function App() {
   const [currentView, setCurrentView] = useState('editor'); // 'editor' or 'runner'
@@ -39,7 +39,9 @@ function App() {
       <div className="App">
         <header className="App-header">
           <div className="header-brand">
-            <div className="header-logo">G</div>
+            <div className="header-logo">
+              <GitMerge size={24} />
+            </div>
             <h1>GitPilot</h1>
           </div>
           <nav className="header-nav">

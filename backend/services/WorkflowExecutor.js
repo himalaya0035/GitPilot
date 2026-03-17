@@ -9,6 +9,7 @@ class WorkflowExecutor {
     this.io = io;
     this.executions = new Map(); // Track active executions
     this.abortedExecutions = new Set(); // Track aborted executions
+    this.activeRepoExecutions = new Map(); // repoPath → executionId, enforces one execution per repo
   }
 
   /**
@@ -16,7 +17,15 @@ class WorkflowExecutor {
    */
   async executeWorkflow(workflow, executionId) {
     console.log(`Starting workflow execution: ${workflow.name} (${executionId})`);
-    
+
+    // Enforce one execution per repository
+    const repoPath = this.gitService.workingDirectory || 'unknown';
+    const existingExecutionId = this.activeRepoExecutions.get(repoPath);
+    if (existingExecutionId) {
+      throw new Error(`A workflow is already running on this repository (execution: ${existingExecutionId}). Please wait for it to finish or stop it before starting a new one.`);
+    }
+    this.activeRepoExecutions.set(repoPath, executionId);
+
     // Initialize execution state
     const execution = {
       id: executionId,
@@ -98,6 +107,9 @@ class WorkflowExecutor {
 
       throw error;
     } finally {
+      // Release repo lock immediately so a new execution can start
+      this.activeRepoExecutions.delete(repoPath);
+
       // Clean up execution tracking
       setTimeout(() => {
         this.executions.delete(executionId);
