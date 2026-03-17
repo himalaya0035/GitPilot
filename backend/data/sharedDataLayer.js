@@ -5,8 +5,8 @@
  */
 
 const DataLayer = require('./DataLayer');
-const MemoryAdapter = require('./adapters/MemoryAdapter');
-const MongoAdapter = require('./adapters/MongoAdapter');
+const WorkflowMemoryAdapter = require('./adapters/memory/WorkflowMemoryAdapter');
+const WorkflowMongoAdapter = require('./adapters/mongo/WorkflowMongoAdapter');
 const { getConnectionString, getConnectionOptions } = require('../config/database');
 
 // Determine which adapter to use based on environment
@@ -17,10 +17,10 @@ let dataLayer;
 
 if (useMongoDB) {
   console.log('Initializing MongoDB adapter...');
-  adapter = new MongoAdapter(getConnectionString(), getConnectionOptions());
+  adapter = new WorkflowMongoAdapter(getConnectionString(), getConnectionOptions());
 } else {
   console.log('Initializing Memory adapter...');
-  adapter = new MemoryAdapter('git-workflow-');
+  adapter = new WorkflowMemoryAdapter('git-workflow-');
 }
 
 // Create a single shared instance
@@ -33,7 +33,7 @@ if (useMongoDB) {
     console.log('Falling back to Memory adapter...');
     
     // Fallback to memory adapter if MongoDB connection fails
-    adapter = new MemoryAdapter('git-workflow-');
+    adapter = new WorkflowMemoryAdapter('git-workflow-');
     dataLayer = new DataLayer(adapter);
   });
 }

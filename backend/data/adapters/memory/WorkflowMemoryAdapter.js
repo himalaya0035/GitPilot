@@ -1,28 +1,23 @@
 /**
- * LocalStorageAdapter - Browser localStorage adapter
+ * MemoryAdapter - In-memory storage adapter
+ * Stores data in memory for development and testing
  * Compatible with the frontend LocalStorageAdapter interface
- * This is a server-side implementation that mimics localStorage behavior
  */
 
-class LocalStorageAdapter {
+class MemoryAdapter {
   constructor(prefix = 'git-workflow-') {
     this.prefix = prefix;
     this.storage = new Map();
   }
 
   /**
-   * Get all workflows from storage
+   * Get all workflows from memory
    */
   async getAll() {
     const workflows = [];
     for (const [key, value] of this.storage.entries()) {
       if (key.startsWith(this.prefix)) {
-        try {
-          const parsed = JSON.parse(value);
-          workflows.push(parsed);
-        } catch (error) {
-          console.error(`Error parsing stored workflow ${key}:`, error);
-        }
+        workflows.push(value);
       }
     }
     return workflows;
@@ -33,15 +28,7 @@ class LocalStorageAdapter {
    */
   async get(id) {
     const key = `${this.prefix}${id}`;
-    const value = this.storage.get(key);
-    if (!value) return null;
-    
-    try {
-      return JSON.parse(value);
-    } catch (error) {
-      console.error(`Error parsing workflow ${id}:`, error);
-      return null;
-    }
+    return this.storage.get(key) || null;
   }
 
   /**
@@ -49,29 +36,20 @@ class LocalStorageAdapter {
    */
   getSync(id) {
     const key = `${this.prefix}${id}`;
-    const value = this.storage.get(key);
-    if (!value) return null;
-    
-    try {
-      return JSON.parse(value);
-    } catch (error) {
-      console.error(`Error parsing workflow ${id}:`, error);
-      return null;
-    }
+    return this.storage.get(key) || null;
   }
 
   /**
-   * Save a workflow to storage
+   * Save a workflow to memory
    */
   async save(workflow) {
     const key = `${this.prefix}${workflow.id}`;
-    const serialized = JSON.stringify(workflow);
-    this.storage.set(key, serialized);
+    this.storage.set(key, workflow);
     return workflow;
   }
 
   /**
-   * Delete a workflow from storage
+   * Delete a workflow from memory
    */
   async delete(id) {
     const key = `${this.prefix}${id}`;
@@ -97,4 +75,4 @@ class LocalStorageAdapter {
   }
 }
 
-module.exports = LocalStorageAdapter;
+module.exports = MemoryAdapter;

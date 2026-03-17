@@ -4,7 +4,7 @@
  */
 
 const mongoose = require('mongoose');
-const Execution = require('../models/Execution');
+const Execution = require('../../models/Execution');
 
 class ExecutionMongoAdapter {
   constructor(connectionString, options = {}) {

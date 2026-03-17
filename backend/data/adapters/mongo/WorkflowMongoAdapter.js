@@ -5,7 +5,7 @@
  */
 
 const mongoose = require('mongoose');
-const Workflow = require('../models/Workflow');
+const Workflow = require('../../models/Workflow');
 
 class MongoAdapter {
   constructor(connectionString, options = {}) {
@@ -61,12 +61,12 @@ class MongoAdapter {
    */
   async getAll() {
     await this.ensureConnection();
-    
+
     try {
       // Get active workflows only
       const activeWorkflows = await Workflow.find({ isActive: true })
         .sort({ createdAt: -1 });
-      
+
       // Convert to JSON to ensure virtual fields are included
       return activeWorkflows.map(workflow => workflow.toJSON());
     } catch (error) {
@@ -80,7 +80,7 @@ class MongoAdapter {
    */
   async get(id) {
     await this.ensureConnection();
-    
+
     try {
       const workflow = await Workflow.findOne({ id: id, isActive: true });
       return workflow ? workflow.toJSON() : null;
@@ -103,18 +103,18 @@ class MongoAdapter {
    */
   async save(workflow) {
     await this.ensureConnection();
-    
+
     try {
       // Use the workflow's id
       const id = workflow.id;
-      
+
       // Use replaceOne with upsert to handle both insert and update
       const result = await Workflow.replaceOne(
         { id: id },
         { ...workflow, id: id, isActive: true },
         { upsert: true }
       );
-      
+
       return workflow;
     } catch (error) {
       console.error('Error saving workflow:', error);
@@ -127,7 +127,7 @@ class MongoAdapter {
    */
   async delete(id) {
     await this.ensureConnection();
-    
+
     try {
       const result = await Workflow.deleteOne({ id: id });
       return result.deletedCount > 0;
@@ -144,7 +144,7 @@ class MongoAdapter {
    */
   async clear() {
     await this.ensureConnection();
-    
+
     try {
       const result = await Workflow.deleteMany({});
       console.log(`Cleared ${result.deletedCount} workflows`);
@@ -160,7 +160,7 @@ class MongoAdapter {
    */
   async getSize() {
     await this.ensureConnection();
-    
+
     try {
       const count = await Workflow.countDocuments({ isActive: true });
       return count;
@@ -175,7 +175,7 @@ class MongoAdapter {
    */
   async search(query) {
     await this.ensureConnection();
-    
+
     try {
       const workflows = await Workflow.find({
         $and: [
@@ -188,7 +188,7 @@ class MongoAdapter {
           }
         ]
       }).sort({ createdAt: -1 }).lean();
-      
+
       return workflows;
     } catch (error) {
       console.error('Error searching workflows:', error);
@@ -201,13 +201,13 @@ class MongoAdapter {
    */
   async getByBranchType(branchType) {
     await this.ensureConnection();
-    
+
     try {
       const workflows = await Workflow.find({
         isActive: true,
         'branches.type': branchType
       }).sort({ createdAt: -1 }).lean();
-      
+
       return workflows;
     } catch (error) {
       console.error(`Error fetching workflows by branch type ${branchType}:`, error);
@@ -220,27 +220,27 @@ class MongoAdapter {
    */
   async getStats() {
     await this.ensureConnection();
-    
+
     try {
       const total = await Workflow.countDocuments({ isActive: true });
-      
+
       const branchTypeStats = await Workflow.aggregate([
         { $match: { isActive: true } },
         { $unwind: '$branches' },
         { $group: { _id: '$branches.type', count: { $sum: 1 } } }
       ]);
-      
+
       const byType = {};
       branchTypeStats.forEach(stat => {
         byType[stat._id] = stat.count;
       });
-      
+
       const recentlyCreated = await Workflow.find({ isActive: true })
         .sort({ createdAt: -1 })
         .limit(5)
         .select('name createdAt')
         .lean();
-      
+
       return {
         total,
         byType,

@@ -5,8 +5,8 @@
  */
 
 const ExecutionDataLayer = require('./ExecutionDataLayer');
-const ExecutionMemoryAdapter = require('./adapters/ExecutionMemoryAdapter');
-const ExecutionMongoAdapter = require('./adapters/ExecutionMongoAdapter');
+const ExecutionMemoryAdapter = require('./adapters/memory/ExecutionMemoryAdapter');
+const ExecutionMongoAdapter = require('./adapters/mongo/ExecutionMongoAdapter');
 const { getConnectionString, getConnectionOptions } = require('../config/database');
 
 const useMongoDB = process.env.USE_MONGODB === 'true' || process.env.MONGODB_URI;
