@@ -16,7 +16,8 @@ import 'reactflow/dist/style.css';
 import WorkflowManager from './WorkflowManager';
 import RepositoryConnectModal from './RepositoryConnectModal';
 import './WorkflowRunner.css';
-import { executionService, workflowService, storageAdapter } from '../services';
+import { executionService, workflowService, storageAdapter, isPlayground } from '../services';
+import { useNotification } from '../contexts/NotificationContext';
 import {
   Factory,
   Wrench,
@@ -53,6 +54,7 @@ const operationTypes = {
 };
 
 function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
+  const { showInfo: showInfoNotification } = useNotification();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -436,6 +438,10 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
       return;
     }
     
+    if (isPlayground) {
+      showInfoNotification('Playground mode: Execution is simulated — no real git commands will run.', 4000);
+    }
+
     setIsExecuting(true);
     setExecutionLog([]);
     addLogEntry(`Starting execution of workflow: ${workflow.name}`, 'info');
@@ -726,8 +732,14 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
               <span className="repository-label">Git Repository: <span className="required-indicator">*</span></span>
               <div>
                 <span className="repository-path">{repositoryPath || 'NOT SELECTED'}</span>
-                <button 
-                  onClick={() => setShowRepositorySelector(true)}
+                <button
+                  onClick={() => {
+                    if (isPlayground) {
+                      showInfoNotification('Repository selection is not available in playground mode. Install GitPilot to connect real repositories.', 4000);
+                      return;
+                    }
+                    setShowRepositorySelector(true);
+                  }}
                   className="change-repository-button"
                 >
                   Change

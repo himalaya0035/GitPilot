@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import Notification from '../components/Notification';
+import { isPlayground } from '../services';
 
 const NotificationContext = createContext();
 
@@ -13,6 +14,16 @@ export const useNotification = () => {
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
+  const [bannerVisible, setBannerVisible] = useState(
+    () => isPlayground && sessionStorage.getItem('playground-banner-dismissed') !== 'true'
+  );
+
+  useEffect(() => {
+    if (!isPlayground) return;
+    const handleDismiss = () => setBannerVisible(false);
+    window.addEventListener('playground-banner-dismissed', handleDismiss);
+    return () => window.removeEventListener('playground-banner-dismissed', handleDismiss);
+  }, []);
 
   const showNotification = useCallback((message, type = 'info', duration = 3000) => {
     const id = Date.now() + Math.random();
@@ -55,7 +66,7 @@ export const NotificationProvider = ({ children }) => {
   return (
     <NotificationContext.Provider value={value}>
       {children}
-      <div className="notification-container">
+      <div className={`notification-container${bannerVisible ? ' playground-offset' : ''}`}>
         {notifications.map(notification => (
           <Notification
             key={notification.id}

@@ -1,0 +1,75 @@
+.playground-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  color: white;
+  font-size: 13px;
+  z-index: 200;
+  flex-shrink: 0;
+}
+
+.playground-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.playground-banner-text strong {
+  font-weight: 700;
+}
+
+.playground-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.playground-banner-link {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.playground-banner-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.playground-banner-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.playground-banner-close:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Shift notifications down to account for the banner */
+.notification-container.playground-offset {
+  top: 120px;
+}
+
+@media (max-width: 480px) {
+  .notification-container.playground-offset {
+    top: 118px;
+  }
+}

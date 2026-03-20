@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { validateRepo } from '../services/GitApi';
-import { Link, X, CheckCircle, AlertCircle, Loader2, Clock, Trash2 } from 'lucide-react';
+import { isPlayground } from '../services';
+import { Link, X, CheckCircle, AlertCircle, Loader2, Clock, Trash2, FlaskConical } from 'lucide-react';
 import './RepositoryConnectModal.css';
 
 function RepositoryConnectModal({ initialPath, onSave, onCancel, showInfo }) {
@@ -21,6 +22,13 @@ function RepositoryConnectModal({ initialPath, onSave, onCancel, showInfo }) {
       }
     }
   }, []);
+
+  // In playground mode, auto-connect the demo repo
+  useEffect(() => {
+    if (isPlayground) {
+      onSave('/playground/demo-repo');
+    }
+  }, [isPlayground]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveToHistory = (repoPath) => {
     const repoName = repoPath.split(/[\/\\]/).pop() || 'Unknown Repository';
@@ -57,10 +65,10 @@ function RepositoryConnectModal({ initialPath, onSave, onCancel, showInfo }) {
         setStatus({ ok: false, message: 'This is not a valid Git repository' });
         return;
       }
-      
+
       saveToHistory(trimmed);
       setStatus({ ok: true, message: 'Repository successfully connected' });
-      
+
       // Delay to show success state briefly
       setTimeout(() => {
         onSave(trimmed);
@@ -71,6 +79,9 @@ function RepositoryConnectModal({ initialPath, onSave, onCancel, showInfo }) {
       setSubmitting(false);
     }
   };
+
+  // Playground mode: render nothing (auto-connected above)
+  if (isPlayground) return null;
 
   return (
     <div className="modal-overlay">
@@ -98,8 +109,8 @@ function RepositoryConnectModal({ initialPath, onSave, onCancel, showInfo }) {
               </label>
               <div className="recent-repos-list">
                 {savedRepositories.map(repo => (
-                  <div 
-                    key={repo.id} 
+                  <div
+                    key={repo.id}
                     className="recent-repo-item"
                     onClick={() => {
                       setPath(repo.path);
@@ -110,8 +121,8 @@ function RepositoryConnectModal({ initialPath, onSave, onCancel, showInfo }) {
                       <span className="repo-name">{repo.name}</span>
                       <span className="repo-path">{repo.path}</span>
                     </div>
-                    <button 
-                      className="remove-recent" 
+                    <button
+                      className="remove-recent"
                       onClick={(e) => removeRepository(e, repo.id)}
                       title="Remove from history"
                     >
@@ -140,7 +151,7 @@ function RepositoryConnectModal({ initialPath, onSave, onCancel, showInfo }) {
               />
             </div>
           </div>
-          
+
           {status && (
             <div className={`status-message ${status.ok ? 'status-success' : 'status-error'}`}>
               {status.ok ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
@@ -153,10 +164,10 @@ function RepositoryConnectModal({ initialPath, onSave, onCancel, showInfo }) {
           <button type="button" onClick={onCancel} className="cancel-button">
             Cancel
           </button>
-          <button 
-            type="button" 
-            onClick={() => handleValidateAndSave()} 
-            className="save-button" 
+          <button
+            type="button"
+            onClick={() => handleValidateAndSave()}
+            className="save-button"
             disabled={submitting}
           >
             {submitting ? (

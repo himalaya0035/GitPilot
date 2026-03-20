@@ -61,6 +61,19 @@
   background-clip: text;
 }
 
+.playground-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #ede9fe, #e0e7ff);
+  color: #6366f1;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+
 .header-nav {
   display: flex;
   align-items: center;

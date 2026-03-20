@@ -5,21 +5,29 @@
 
 import WorkflowService from './WorkflowService';
 import ExecutionService from './ExecutionService';
+import PlaygroundExecutionService from './PlaygroundExecutionService';
 import LocalStorageAdapter from './storage/LocalStorageAdapter';
 import ApiAdapter from './storage/ApiAdapter';
 
-// Determine which adapter to use based on environment
-const useBackend = process.env.REACT_APP_USE_BACKEND === 'true' || 
-                   process.env.NODE_ENV === 'development';
+// Playground mode detection
+export const isPlayground = process.env.REACT_APP_PLAYGROUND === 'true';
 
-// Create storage adapter instance
+// Determine which adapter to use based on environment
+const useBackend = !isPlayground && (
+  process.env.REACT_APP_USE_BACKEND === 'true' ||
+  process.env.NODE_ENV === 'development'
+);
+
+// Create storage adapter instance — playground always uses localStorage
 const storageAdapter = useBackend ? new ApiAdapter() : new LocalStorageAdapter('git-workflow-');
 
 // Create workflow service instance
 const workflowService = new WorkflowService(storageAdapter);
 
-// Create execution service instance
-const executionService = new ExecutionService();
+// Create execution service instance — playground uses simulated execution
+const executionService = isPlayground
+  ? new PlaygroundExecutionService(workflowService)
+  : new ExecutionService();
 
 // Export services
 export { workflowService, executionService, storageAdapter };

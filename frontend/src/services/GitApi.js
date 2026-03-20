@@ -1,6 +1,11 @@
+import { isPlayground } from './index';
+import * as PlaygroundGitApi from './PlaygroundGitApi';
+
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000/api';
 
 export async function validateRepo(repositoryPath) {
+  if (isPlayground) return PlaygroundGitApi.validateRepo(repositoryPath);
+
   const res = await fetch(`${API_BASE}/git/validate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -14,6 +19,8 @@ export async function validateRepo(repositoryPath) {
 }
 
 export async function getBranches(repositoryPath, query = '', limit = 20, includeRemotes = true) {
+  if (isPlayground) return PlaygroundGitApi.getBranches(repositoryPath, query, limit, includeRemotes);
+
   const res = await fetch(`${API_BASE}/git/branches`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -25,5 +32,3 @@ export async function getBranches(repositoryPath, query = '', limit = 20, includ
   }
   return json.data;
 }
-
-

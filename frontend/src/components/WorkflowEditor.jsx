@@ -21,6 +21,7 @@ import OperationConfigModal from './OperationConfigModal';
 import WorkflowManager from './WorkflowManager';
 import { useWorkflows } from '../hooks/useWorkflows';
 import { useNotification } from '../contexts/NotificationContext';
+import { isPlayground } from '../services';
 import { sanitizeWorkflowName } from '../utils/validation';
 import { getGitWorkflowLayout, animateToNewPositions, analyzeLayout } from '../utils/layout';
 import './WorkflowEditor.css';
@@ -114,7 +115,7 @@ function WorkflowEditor({ onWorkflowCreated }) {
 
   // Workflow management
   const { saveWorkflow, updateWorkflow } = useWorkflows();
-  const { showSuccess, showError, showWarning } = useNotification();
+  const { showSuccess, showError, showWarning, showInfo } = useNotification();
 
   // Save current state to history
   const saveToHistory = useCallback(() => {
@@ -1388,13 +1389,19 @@ function WorkflowEditor({ onWorkflowCreated }) {
           <h4>Repository</h4>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={() => setShowRepoModal(true)}
+              onClick={() => {
+                if (isPlayground) {
+                  showInfo('Repository selection is not available in playground mode. Install GitPilot to connect real repositories.');
+                  return;
+                }
+                setShowRepoModal(true);
+              }}
               className="control-button select-all-button"
               style={{ flex: repositoryPath ? 4 : 1, width: repositoryPath ? 'auto' : '100%' }}
-              title={repositoryPath ? `Connected: ${repositoryPath}` : 'Connect a local Git repository to enable branch suggestions'}
+              title={isPlayground ? 'Repository selection is not available in playground mode' : (repositoryPath ? `Connected: ${repositoryPath}` : 'Connect a local Git repository to enable branch suggestions')}
             >
               <Link size={16} />
-              {repositoryPath ? 'Change Repository' : 'Connect Git Repository'}
+              {isPlayground ? 'Demo Repository' : (repositoryPath ? 'Change Repository' : 'Connect Git Repository')}
             </button>
             {repositoryPath && (
               <div

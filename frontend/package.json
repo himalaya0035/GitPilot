@@ -19,6 +19,8 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:playground": "REACT_APP_PLAYGROUND=true REACT_APP_USE_BACKEND=false react-scripts build",
+    "start:playground": "REACT_APP_PLAYGROUND=true REACT_APP_USE_BACKEND=false react-scripts start",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

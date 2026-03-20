@@ -1,15 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import WorkflowEditor from './components/WorkflowEditor';
 import WorkflowRunner from './components/WorkflowRunner';
 import WorkflowManager from './components/WorkflowManager';
 import { NotificationProvider } from './contexts/NotificationContext';
-import { Edit3, Play, GitMerge } from 'lucide-react';
+import { isPlayground } from './services';
+import { Edit3, Play, GitMerge, FlaskConical } from 'lucide-react';
+
+// Playground-only imports
+const PlaygroundBanner = isPlayground ? require('./components/PlaygroundBanner').default : null;
+const PlaygroundHelper = isPlayground ? require('./components/PlaygroundHelper').default : null;
+const seedSampleWorkflows = isPlayground ? require('./data/sampleWorkflows').seedSampleWorkflows : null;
 
 function App() {
   const [currentView, setCurrentView] = useState('editor'); // 'editor' or 'runner'
   const [workflow, setWorkflow] = useState(null);
   const [showWorkflowSelector, setShowWorkflowSelector] = useState(false);
+
+  // Seed sample workflows on first playground visit
+  useEffect(() => {
+    if (isPlayground && seedSampleWorkflows) {
+      seedSampleWorkflows();
+    }
+  }, []);
 
   const handleWorkflowCreated = (workflowData) => {
     setWorkflow(workflowData);
@@ -37,15 +50,22 @@ function App() {
   return (
     <NotificationProvider>
       <div className="App">
+        {isPlayground && PlaygroundBanner && <PlaygroundBanner />}
         <header className="App-header">
           <div className="header-brand">
             <div className="header-logo">
               <GitMerge size={24} />
             </div>
             <h1>GitPilot</h1>
+            {isPlayground && (
+              <span className="playground-badge">
+                <FlaskConical size={13} />
+                Playground
+              </span>
+            )}
           </div>
           <nav className="header-nav">
-            <button 
+            <button
               className={`nav-tab ${currentView === 'editor' ? 'active' : ''}`}
               onClick={() => setCurrentView('editor')}
             >
@@ -54,7 +74,7 @@ function App() {
               </span>
               Workflow Editor
             </button>
-            <button 
+            <button
               className={`nav-tab ${currentView === 'runner' ? 'active' : ''}`}
               onClick={handleWorkflowRunnerClick}
             >
@@ -66,13 +86,13 @@ function App() {
             </button>
           </nav>
         </header>
-        
+
         <main>
           {currentView === 'editor' ? (
             <WorkflowEditor onWorkflowCreated={handleWorkflowCreated} />
           ) : (
-            <WorkflowRunner 
-              workflow={workflow} 
+            <WorkflowRunner
+              workflow={workflow}
               onBackToEditor={handleBackToEditor}
               onWorkflowChange={handleWorkflowSelected}
             />
@@ -84,7 +104,7 @@ function App() {
             <div className="workflow-selector-modal">
               <div className="modal-header">
                 <h2>Select Workflow to Run</h2>
-                <button 
+                <button
                   className="close-button"
                   onClick={() => setShowWorkflowSelector(false)}
                 >
@@ -92,7 +112,7 @@ function App() {
                 </button>
               </div>
               <div className="modal-content">
-                <WorkflowManager 
+                <WorkflowManager
                   onLoadWorkflow={handleWorkflowSelected}
                   onClose={() => setShowWorkflowSelector(false)}
                   showOnlyLoad={true}
@@ -101,6 +121,8 @@ function App() {
             </div>
           </div>
         )}
+
+        {isPlayground && PlaygroundHelper && <PlaygroundHelper />}
       </div>
     </NotificationProvider>
   );
