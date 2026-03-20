@@ -60,7 +60,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionLog, setExecutionLog] = useState([]);
   const [showWorkflowSelector, setShowWorkflowSelector] = useState(false);
-  const [repositoryPath, setRepositoryPath] = useState('');
+  const [repositoryPath, setRepositoryPath] = useState(isPlayground ? '/playground/demo-repo' : '');
   const [showRepositorySelector, setShowRepositorySelector] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [previewData, setPreviewData] = useState(null);
@@ -303,7 +303,7 @@ function WorkflowRunner({ workflow, onBackToEditor, onWorkflowChange }) {
   useEffect(() => {
     if (workflow) {
       // Set repository path from workflow
-      setRepositoryPath(workflow.repositoryPath || '');
+      setRepositoryPath(workflow.repositoryPath || (isPlayground ? '/playground/demo-repo' : ''));
       
       // Check for auto-pull operations to determine which branches should have autoPull enabled
       const autoPullBranches = new Set();
