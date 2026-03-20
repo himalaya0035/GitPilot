@@ -10,19 +10,15 @@ import { Edit3, Play, GitMerge, FlaskConical } from 'lucide-react';
 // Playground-only imports
 const PlaygroundBanner = isPlayground ? require('./components/PlaygroundBanner').default : null;
 const PlaygroundHelper = isPlayground ? require('./components/PlaygroundHelper').default : null;
-const seedSampleWorkflows = isPlayground ? require('./data/sampleWorkflows').seedSampleWorkflows : null;
+// Seed sample workflows synchronously before first render
+if (isPlayground) {
+  require('./data/sampleWorkflows').seedSampleWorkflows();
+}
 
 function App() {
   const [currentView, setCurrentView] = useState('editor'); // 'editor' or 'runner'
   const [workflow, setWorkflow] = useState(null);
   const [showWorkflowSelector, setShowWorkflowSelector] = useState(false);
-
-  // Seed sample workflows on first playground visit
-  useEffect(() => {
-    if (isPlayground && seedSampleWorkflows) {
-      seedSampleWorkflows();
-    }
-  }, []);
 
   const handleWorkflowCreated = (workflowData) => {
     setWorkflow(workflowData);

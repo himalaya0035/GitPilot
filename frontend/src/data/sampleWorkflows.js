@@ -5,191 +5,113 @@
 
 const sampleWorkflows = [
   {
-    id: 'sample-feature-branch-flow',
-    name: 'Feature Branch Flow',
-    description: 'Create a feature branch from develop, make changes, and merge back.',
+    id: 'workflow-1774041380016-7cvj87hjc',
+    name: 'Sample Release Workflow',
+    repositoryPath: null,
     branches: [
       {
-        id: 'branch-develop',
-        name: 'develop',
-        type: 'develop',
+        id: 'production-1774041179795',
+        name: 'prod',
+        type: 'production',
         isRemote: false,
-        position: { x: 100, y: 200 },
-        autoPull: false,
+        autoPull: true,
+        autoPullRemote: 'origin',
         autoPush: false,
-        deleteConfig: { enabled: false, remote: false, force: false, remoteName: 'origin' },
+        autoPushRemote: 'origin',
+        position: { x: 19.036684392187112, y: 41.66680341771038 },
         tags: []
       },
       {
-        id: 'branch-feature',
-        name: 'feature/new-login',
+        id: 'feature-1774041317606',
+        name: 'feature/feature-a',
         type: 'feature',
         isRemote: false,
-        position: { x: 450, y: 200 },
-        autoPull: false,
+        autoPull: true,
+        autoPullRemote: 'origin',
         autoPush: false,
-        deleteConfig: { enabled: false, remote: false, force: false, remoteName: 'origin' },
-        tags: []
-      }
-    ],
-    operations: [
-      {
-        id: 'op-1',
-        type: 'checkout',
-        source: 'branch-develop',
-        target: 'branch-feature',
-        params: { new: true, reset: false, force: false }
-      },
-      {
-        id: 'op-2',
-        type: 'merge',
-        source: 'branch-feature',
-        target: 'branch-develop',
-        params: { strategy: 'standard', ffOption: 'no-ff' }
-      }
-    ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    version: 1
-  },
-  {
-    id: 'sample-release-workflow',
-    name: 'Release Workflow',
-    description: 'Create a release branch, merge to main, tag, and merge back to develop.',
-    branches: [
-      {
-        id: 'branch-develop-r',
-        name: 'develop',
-        type: 'develop',
-        isRemote: false,
-        position: { x: 100, y: 100 },
-        autoPull: false,
-        autoPush: false,
-        deleteConfig: { enabled: false, remote: false, force: false, remoteName: 'origin' },
+        autoPushRemote: 'origin',
+        position: { x: 413.0063327970702, y: -135.74999189044885 },
         tags: []
       },
       {
-        id: 'branch-release',
-        name: 'release/1.0',
+        id: 'release-1774041320849',
+        name: 'release/v1.4.0',
         type: 'release',
         isRemote: false,
-        position: { x: 400, y: 100 },
         autoPull: false,
-        autoPush: false,
-        deleteConfig: { enabled: false, remote: false, force: false, remoteName: 'origin' },
+        autoPullRemote: 'origin',
+        autoPush: true,
+        autoPushRemote: 'origin',
+        position: { x: 466.92712352798134, y: 43.406183763868825 },
         tags: []
       },
       {
-        id: 'branch-main-r',
-        name: 'main',
-        type: 'production',
+        id: 'feature-1774041340533',
+        name: 'feature-b',
+        type: 'feature',
         isRemote: false,
-        position: { x: 700, y: 100 },
-        autoPull: false,
+        autoPull: true,
+        autoPullRemote: 'origin',
         autoPush: false,
-        deleteConfig: { enabled: false, remote: false, force: false, remoteName: 'origin' },
-        tags: ['v1.0.0']
-      }
-    ],
-    operations: [
-      {
-        id: 'op-r1',
-        type: 'checkout',
-        source: 'branch-develop-r',
-        target: 'branch-release',
-        params: { new: true, reset: false, force: false }
-      },
-      {
-        id: 'op-r2',
-        type: 'merge',
-        source: 'branch-release',
-        target: 'branch-main-r',
-        params: { strategy: 'standard', ffOption: 'no-ff' }
-      },
-      {
-        id: 'op-r3',
-        type: 'tag',
-        source: 'branch-main-r',
-        target: 'branch-main-r',
-        params: { tagName: 'v1.0.0', message: 'Release 1.0.0' }
-      },
-      {
-        id: 'op-r4',
-        type: 'merge',
-        source: 'branch-release',
-        target: 'branch-develop-r',
-        params: { strategy: 'standard', ffOption: 'no-ff' }
-      }
-    ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    version: 1
-  },
-  {
-    id: 'sample-hotfix-flow',
-    name: 'Hotfix Flow',
-    description: 'Create a hotfix from main, then merge to both main and develop.',
-    branches: [
-      {
-        id: 'branch-main-h',
-        name: 'main',
-        type: 'production',
-        isRemote: false,
-        position: { x: 100, y: 150 },
-        autoPull: false,
-        autoPush: false,
-        deleteConfig: { enabled: false, remote: false, force: false, remoteName: 'origin' },
-        tags: []
-      },
-      {
-        id: 'branch-hotfix',
-        name: 'hotfix/login-fix',
-        type: 'hotfix',
-        isRemote: false,
-        position: { x: 400, y: 150 },
-        autoPull: false,
-        autoPush: false,
-        deleteConfig: { enabled: false, remote: false, force: false, remoteName: 'origin' },
-        tags: []
-      },
-      {
-        id: 'branch-develop-h',
-        name: 'develop',
-        type: 'develop',
-        isRemote: false,
-        position: { x: 700, y: 150 },
-        autoPull: false,
-        autoPush: false,
-        deleteConfig: { enabled: false, remote: false, force: false, remoteName: 'origin' },
+        autoPushRemote: 'origin',
+        position: { x: 393.00345881624827, y: 242.56523339900832 },
         tags: []
       }
     ],
     operations: [
       {
-        id: 'op-h1',
+        id: 'auto-pull-production-1774041179795',
+        type: 'pull',
+        source: 'production-1774041179795',
+        target: 'production-1774041179795',
+        params: { rebase: false, remote: 'origin' }
+      },
+      {
+        id: 'auto-pull-feature-1774041317606',
+        type: 'pull',
+        source: 'feature-1774041317606',
+        target: 'feature-1774041317606',
+        params: { rebase: false, remote: 'origin' }
+      },
+      {
+        id: 'auto-pull-feature-1774041340533',
+        type: 'pull',
+        source: 'feature-1774041340533',
+        target: 'feature-1774041340533',
+        params: { rebase: false, remote: 'origin' }
+      },
+      {
+        id: 'auto-push-release-1774041320849',
+        type: 'push',
+        source: 'release-1774041320849',
+        target: 'release-1774041320849',
+        params: { remote: 'origin', upstream: true }
+      },
+      {
+        id: 'edge-1774041322503',
         type: 'checkout',
-        source: 'branch-main-h',
-        target: 'branch-hotfix',
-        params: { new: true, reset: false, force: false }
+        source: 'production-1774041179795',
+        target: 'release-1774041320849',
+        params: { force: false, new: true, reset: false }
       },
       {
-        id: 'op-h2',
+        id: 'edge-1774041337835',
         type: 'merge',
-        source: 'branch-hotfix',
-        target: 'branch-main-h',
-        params: { strategy: 'standard', ffOption: 'no-ff' }
+        source: 'feature-1774041317606',
+        target: 'release-1774041320849',
+        params: {}
       },
       {
-        id: 'op-h3',
+        id: 'edge-1774041345783',
         type: 'merge',
-        source: 'branch-hotfix',
-        target: 'branch-develop-h',
-        params: { strategy: 'standard', ffOption: 'no-ff' }
+        source: 'feature-1774041340533',
+        target: 'release-1774041320849',
+        params: {}
       }
     ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    version: 1
+    createdAt: '2026-03-20T21:16:20.016Z',
+    updatedAt: '2026-03-20T21:16:20.016Z',
+    version: '1.0'
   }
 ];
 
