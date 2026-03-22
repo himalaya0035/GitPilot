@@ -1,172 +1,170 @@
 # GitPilot
 
-A visual Git workflow management and execution platform built with React and Node.js.
+A visual Git workflow management and execution platform built with React and Node.js. Design workflows with a drag-and-drop editor, then execute them on real repositories with live progress tracking.
 
 ## Features
 
-- **Visual Workflow Editor** - Drag-and-drop interface for creating Git workflows
-- **Real-time Execution** - Execute workflows with live progress tracking
-- **Git Operations** - Support for checkout, merge, rebase, push, pull, delete-branch, tag
-- **Dependency Resolution** - Automatic parallel execution of independent operations
-- **Backend API** - RESTful API with Socket.IO for real-time updates
-- **Data Layer Abstraction** - Easy switching between storage backends
+- **Visual Workflow Editor** — Drag-and-drop interface powered by React Flow for designing Git workflows
+- **Real-time Execution** — Run workflows on real repositories with live progress via Socket.IO
+- **Git Operations** — Checkout, merge, rebase, push, pull, delete-branch, and tag
+- **Dependency Resolution** — Automatically runs independent operations in parallel
+- **Pluggable Storage** — In-memory (default) or MongoDB for persistent workflows
+- **Playground Mode** — Try GitPilot in-browser without installing anything
 
-## Architecture
+## Installation
 
-### Frontend (React + React Flow)
-- **WorkflowEditor** - Visual workflow creation and editing
-- **WorkflowRunner** - Real-time workflow execution with progress tracking
-- **WorkflowManager** - Workflow CRUD operations and management
-- **Services** - API integration with backend
-
-### Backend (Node.js + Express)
-- **REST API** - Workflow CRUD operations
-- **Socket.IO** - Real-time execution updates
-- **Git Service** - Git command execution using child_process
-- **Data Layer** - Abstract storage interface (Memory/LocalStorage adapters)
-
-## Quick Start
-
-### Development Mode
+### One-Line Install
 
 ```bash
-# Start both backend and frontend
+curl -fsSL https://raw.githubusercontent.com/himalaya0035/GitPilot/main/install.sh | bash
+```
+
+This will:
+1. Check prerequisites (Git, Node.js v18+, npm)
+2. Clone the repository
+3. Create the backend `.env` from `.env.example`
+4. Optionally set up MongoDB via Docker for persistent storage
+5. Install all dependencies
+6. Offer to start the dev servers
+
+### Manual Setup
+
+```bash
+# Clone
+git clone https://github.com/himalaya0035/GitPilot.git
+cd GitPilot
+
+# Create backend environment file
+cp backend/.env.example backend/.env
+
+# Install dependencies
+cd backend && npm install
+cd ../frontend && npm install
+cd ..
+```
+
+### Starting the Dev Servers
+
+```bash
+# Start both backend and frontend (recommended)
 ./start-dev.sh
 ```
+
+The script checks prerequisites, auto-installs/updates dependencies if needed, and starts:
+- **Frontend** — http://localhost:3000
+- **Backend** — http://localhost:5000
+- **Health check** — http://localhost:5000/api/health
 
 Or start individually:
 
 ```bash
 # Backend (Terminal 1)
-cd git-visualizer/backend
-npm install
-npm run dev
+cd backend && npm run dev
 
 # Frontend (Terminal 2)
-cd git-visualizer/frontend
-npm install
-npm start
+cd frontend && npm start
 ```
 
-### Production Mode
+### MongoDB (Optional)
+
+By default, GitPilot uses in-memory storage (data is lost on restart). For persistent storage, set up MongoDB:
 
 ```bash
-# Backend
-cd git-visualizer/backend
-npm install
-npm start
+# Using Docker
+docker run -d --name gitpilot-mongo -p 27017:27017 \
+  -e MONGO_INITDB_ROOT_USERNAME=gitpilot \
+  -e MONGO_INITDB_ROOT_PASSWORD=gitpilot \
+  --restart unless-stopped mongo:latest
+```
 
-# Frontend
-cd git-visualizer/frontend
-npm install
-npm run build
+Then update `backend/.env`:
+
+```
+MONGODB_URI=mongodb://gitpilot:gitpilot@localhost:27017/GitPilot?authSource=admin
+USE_MONGODB=true
+```
+
+## Architecture
+
+### Frontend (React + React Flow)
+- **WorkflowEditor** — Visual workflow creation with drag-and-drop branches and operations
+- **WorkflowRunner** — Real-time execution with live progress tracking
+- **WorkflowManager** — Save, load, and manage workflows
+- **Services** — Pluggable adapter pattern (API backend or localStorage for playground)
+
+### Backend (Node.js + Express)
+- **REST API** — Workflow and execution CRUD
+- **Socket.IO** — Real-time execution events
+- **Git Service** — Git command execution via child_process
+- **Data Layer** — Abstract storage with memory and MongoDB adapters
+
+## Project Structure
+
+```
+GitPilot/
+├── backend/
+│   ├── index.js              # Express + Socket.IO server
+│   ├── routes/               # API route handlers
+│   ├── services/             # Git service and workflow executor
+│   ├── data/
+│   │   ├── DataLayer.js      # Workflow storage abstraction
+│   │   ├── ExecutionDataLayer.js
+│   │   └── adapters/
+│   │       ├── memory/       # In-memory adapters (default)
+│   │       └── mongo/        # MongoDB adapters
+│   ├── middleware/            # Express middleware
+│   └── config/               # Server configuration
+├── frontend/
+│   └── src/
+│       ├── components/       # React components (editor, runner, modals)
+│       ├── services/         # API and storage adapters
+│       ├── contexts/         # React context providers
+│       ├── hooks/            # Custom React hooks
+│       └── utils/            # Utility functions
+├── install.sh                # One-line installer
+└── start-dev.sh              # Dev server launcher
 ```
 
 ## API Endpoints
 
 ### Workflows
-- `GET /api/workflows` - Get all workflows
-- `GET /api/workflows/:id` - Get specific workflow
-- `POST /api/workflows` - Create workflow
-- `PUT /api/workflows/:id` - Update workflow
-- `DELETE /api/workflows/:id` - Delete workflow
-- `GET /api/workflows/search?q=query` - Search workflows
-- `GET /api/workflows/stats` - Get statistics
+- `GET /api/workflows` — List all workflows
+- `GET /api/workflows/:id` — Get a workflow
+- `POST /api/workflows` — Create a workflow
+- `PUT /api/workflows/:id` — Update a workflow
+- `DELETE /api/workflows/:id` — Delete a workflow
+- `GET /api/workflows/search?q=query` — Search workflows
+- `GET /api/workflows/stats` — Workflow statistics
 
 ### Execution
-- `POST /api/execution/:id/start` - Start workflow execution
-- `GET /api/execution/:id/status` - Get execution status
-- `POST /api/execution/:id/stop` - Stop execution
+- `POST /api/execution/:id/start` — Start workflow execution
+- `GET /api/execution/:id/status` — Get execution status
+- `POST /api/execution/:id/stop` — Stop execution
 
 ### Health
-- `GET /api/health` - Health check
+- `GET /api/health` — Health check
 
 ## Socket.IO Events
 
 ### Client → Server
-- `execution-stopped` - Stop execution
+- `execution-stopped` — Stop execution
 
 ### Server → Client
-- `execution-started` - Execution started
-- `execution-completed` - Execution completed
-- `execution-failed` - Execution failed
-- `operation-started` - Operation started
-- `operation-completed` - Operation completed
-- `operation-failed` - Operation failed
-- `log-entry` - Log entry added
-
-## Workflow Schema
-
-### Branch Types
-- `production` - Production branch
-- `feature` - Feature branch
-- `release` - Release branch
-- `hotfix` - Hotfix branch
-- `develop` - Development branch
-- `staging` - Staging branch
-
-### Operation Types
-- `checkout` - Checkout branch (with -b flag support)
-- `merge` - Merge branches (with strategy options)
-- `rebase` - Rebase operations
-- `push` - Push to remote
-- `pull` - Pull from remote
-- `delete-branch` - Delete branch (local/remote)
-- `tag` - Create tags
-
-### Status Values
-- `pending` - Not started
-- `running` - Currently executing
-- `success` - Completed successfully
-- `failed` - Execution failed
+- `execution-started` / `execution-completed` / `execution-failed`
+- `operation-started` / `operation-completed` / `operation-failed`
+- `log-entry` — Log output
 
 ## Environment Variables
 
-### Backend
-- `PORT` - Server port (default: 5000)
-- `NODE_ENV` - Environment (development/production)
+### Backend (`backend/.env`)
+- `MONGODB_URI` — MongoDB connection string
+- `DB_NAME` — Database name (default: `GitPilot`)
+- `COLLECTION_NAME` — Collection name (default: `workflows`)
+- `USE_MONGODB` — Enable MongoDB storage (`true`/`false`)
+- `NODE_ENV` — `development` or `production`
 
 ### Frontend
-- `REACT_APP_USE_BACKEND` - Use backend API (default: true in development)
-- `NODE_ENV` - Environment (development/production)
-
-## Development
-
-### Backend Structure
-```
-backend/
-├── index.js              # Main server file
-├── data/                 # Data layer
-│   ├── DataLayer.js      # Abstract data interface
-│   └── adapters/         # Storage adapters
-├── middleware/           # Express middleware
-├── routes/              # API routes
-├── services/            # Business logic
-└── test-server.js       # Test utilities
-```
-
-### Frontend Structure
-```
-frontend/src/
-├── components/          # React components
-├── services/           # API services
-│   ├── storage/        # Storage adapters
-│   └── ExecutionService.js
-├── hooks/              # React hooks
-└── contexts/           # React contexts
-```
-
-## Testing
-
-```bash
-# Test backend
-cd git-visualizer/backend
-node test-server.js
-
-# Test API endpoints
-curl http://localhost:5000/api/health
-curl http://localhost:5000/api/workflows
-```
+- `REACT_APP_PLAYGROUND` — Enable browser-only playground mode (`true`/`false`)
 
 ## Contributing
 
