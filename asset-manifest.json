@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/GitPilot/static/css/main.d22d7853.css",
-    "main.js": "/GitPilot/static/js/main.8502c753.js",
+    "main.js": "/GitPilot/static/js/main.1442178e.js",
     "index.html": "/GitPilot/index.html",
     "main.d22d7853.css.map": "/GitPilot/static/css/main.d22d7853.css.map",
-    "main.8502c753.js.map": "/GitPilot/static/js/main.8502c753.js.map"
+    "main.1442178e.js.map": "/GitPilot/static/js/main.1442178e.js.map"
   },
   "entrypoints": [
     "static/css/main.d22d7853.css",
-    "static/js/main.8502c753.js"
+    "static/js/main.1442178e.js"
   ]
 }
