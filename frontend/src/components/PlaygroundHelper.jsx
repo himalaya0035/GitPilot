@@ -48,7 +48,7 @@ function PlaygroundHelper() {
         <div className="playground-welcome-cta">
           <p className="playground-welcome-real">To run workflows on real repositories, check out the full version:</p>
           <a
-            href="https://github.com/himalaya-gupta/GitPilot#getting-started"
+            href="https://himalaya0035.github.io/gitpilot-landing/usage.html#installation"
             target="_blank"
             rel="noopener noreferrer"
             className="playground-welcome-link"

@@ -25,7 +25,7 @@ function PlaygroundBanner() {
       </div>
       <div className="playground-banner-actions">
         <a
-          href="https://github.com/himalaya-gupta/GitPilot#getting-started"
+          href="https://himalaya0035.github.io/gitpilot-landing/usage.html#installation"
           target="_blank"
           rel="noopener noreferrer"
           className="playground-banner-link"
