@@ -50,7 +50,7 @@ echo ""
 # ── Clone ──
 if [ -d "$INSTALL_DIR" ]; then
     warn "Directory '$INSTALL_DIR' already exists."
-    read -rp "  Overwrite and reinstall? (y/N): " confirm
+    read -rp "  Overwrite and reinstall? (y/N): " confirm < /dev/tty
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         rm -rf "$INSTALL_DIR"
     else
@@ -89,7 +89,7 @@ echo -e "${BOLD}MongoDB Setup${NC}"
 echo "  GitPilot uses in-memory storage by default (data lost on restart)."
 echo "  You can set up MongoDB via Docker for persistent storage."
 echo ""
-read -rp "  Set up MongoDB with Docker? (y/N): " mongo_confirm
+read -rp "  Set up MongoDB with Docker? (y/N): " mongo_confirm < /dev/tty
 
 if [[ "$mongo_confirm" =~ ^[Yy]$ ]]; then
     # Check if Docker is installed and running
@@ -194,7 +194,7 @@ fi
 echo ""
 
 # ── Start servers ──
-read -rp "  Start GitPilot now? (y/N): " start_confirm
+read -rp "  Start GitPilot now? (y/N): " start_confirm < /dev/tty
 echo ""
 
 if [[ "$start_confirm" =~ ^[Yy]$ ]]; then
